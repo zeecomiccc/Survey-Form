@@ -25,6 +25,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Question, Survey, QuestionType } from '@/types/survey';
 import { storage } from '@/lib/storage';
 import QuestionEditor from '@/components/QuestionEditor';
+import { cleanQuestionTitle } from '@/lib/utils';
 
 function SortableQuestion({
   question,
@@ -96,7 +97,7 @@ function SortableQuestion({
               <GripVertical size={20} />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900">{question.title || 'Untitled Question'}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{cleanQuestionTitle(question.title) || 'Untitled Question'}</h3>
               <p className="text-sm text-gray-500 mt-1">Click arrow to expand and edit</p>
             </div>
           </div>
@@ -141,7 +142,12 @@ function BuilderContent() {
         if (survey) {
           setTitle(survey.title);
           setDescription(survey.description || '');
-          setQuestions(survey.questions);
+          // Clean all question titles when loading
+          const cleanedQuestions = survey.questions.map(q => ({
+            ...q,
+            title: String(q.title || '').replace(/0+$/, '').trim(),
+          }));
+          setQuestions(cleanedQuestions);
         }
       }
     };
@@ -179,8 +185,13 @@ function BuilderContent() {
   };
 
   const updateQuestion = (index: number, question: Question) => {
+    // Clean title before updating
+    const cleanedQuestion = {
+      ...question,
+      title: String(question.title || '').replace(/0+$/, '').trim(),
+    };
     const updated = [...questions];
-    updated[index] = question;
+    updated[index] = cleanedQuestion;
     setQuestions(updated);
   };
 
@@ -242,7 +253,11 @@ function BuilderContent() {
         id: surveyId || uuidv4(),
         title: title.trim(),
         description: description.trim() || undefined,
-        questions: validQuestions,
+        questions: validQuestions.map(q => ({
+          ...q,
+          // Clean title - remove trailing zeros and trim
+          title: String(q.title || '').trim().replace(/0+$/, '').trim(),
+        })),
         createdAt,
         updatedAt: new Date().toISOString(),
       };

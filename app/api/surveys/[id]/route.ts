@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { cleanQuestionTitle } from '@/lib/utils';
 
 // GET single survey (public access for viewing, no auth required)
 export async function GET(
@@ -37,14 +38,23 @@ export async function GET(
     // Get options for each question
     const questionsWithOptions = await Promise.all(
       questions.map(async (question: any) => {
+        // Clean and trim the title to remove any unwanted characters
+        // Use the utility function for consistent cleaning
+        const cleanTitle = cleanQuestionTitle(question.title);
+        
+        const cleanedQuestion = {
+          ...question,
+          title: cleanTitle,
+        };
+        
         if (['multiple-choice', 'single-choice'].includes(question.type)) {
           const [options] = await pool.execute(
             'SELECT id, label FROM question_options WHERE question_id = ? ORDER BY id ASC',
             [question.id]
           ) as any[];
-          return { ...question, options };
+          return { ...cleanedQuestion, options };
         }
-        return question;
+        return cleanedQuestion;
       })
     );
 
@@ -99,6 +109,9 @@ export async function PUT(
 
     // Insert updated questions
     for (const question of survey.questions) {
+      // Clean title - remove trailing zeros and trim
+      const cleanTitle = cleanQuestionTitle(question.title);
+      
       await pool.execute(
         `INSERT INTO questions (id, survey_id, type, title, description, required, min_rating, max_rating, \`order\`)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -106,7 +119,7 @@ export async function PUT(
           question.id,
           surveyId,
           question.type,
-          question.title,
+          cleanTitle,
           question.description || null,
           question.required,
           question.minRating || null,

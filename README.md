@@ -305,7 +305,10 @@ For issues and questions:
 ## 📚 Additional Documentation
 
 - [SECURITY.md](SECURITY.md) - Security checklist and best practices
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment guide
 - [README-EMAIL.md](README-EMAIL.md) - Email notification setup guide
+- [LOGO-FOOTER-SETUP.md](LOGO-FOOTER-SETUP.md) - Logo and footer configuration guide
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Contributing guidelines
 - [database/schema.sql](database/schema.sql) - Database schema
 - [database/dump.sql](database/dump.sql) - Complete database dump
 

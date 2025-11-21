@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Question, QuestionType, QuestionOption } from '@/types/survey';
 import { X, Plus, GripVertical, Trash2 } from 'lucide-react';
 
@@ -11,10 +11,41 @@ interface QuestionEditorProps {
 }
 
 export default function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
-  const [localQuestion, setLocalQuestion] = useState<Question>(question);
+  const [localQuestion, setLocalQuestion] = useState<Question>({
+    ...question,
+    title: String(question.title || '').replace(/0+$/, '').trim(),
+  });
+
+  // Watch for title changes and clean any trailing zeros
+  useEffect(() => {
+    if (localQuestion.title && localQuestion.title.toString().endsWith('0')) {
+      const cleaned = String(localQuestion.title).replace(/0+$/, '').trim();
+      if (cleaned !== localQuestion.title) {
+        setLocalQuestion(prev => ({ ...prev, title: cleaned }));
+        onUpdate({ ...localQuestion, title: cleaned });
+      }
+    }
+  }, [localQuestion.title]);
+
+  // Update local question when prop changes
+  useEffect(() => {
+    const cleanedTitle = String(question.title || '').replace(/0+$/, '').trim();
+    if (cleanedTitle !== localQuestion.title) {
+      setLocalQuestion(prev => ({ ...prev, title: cleanedTitle }));
+    }
+  }, [question.title]);
 
   const updateQuestion = (updates: Partial<Question>) => {
+    // Clean title if it's being updated - ensure no trailing zeros
+    if (updates.title !== undefined) {
+      updates.title = String(updates.title).replace(/0+$/, '').trim();
+    }
     const updated = { ...localQuestion, ...updates };
+    
+    // Ensure title is always clean
+    if (updated.title) {
+      updated.title = String(updated.title).replace(/0+$/, '').trim();
+    }
     
     // If changing to a choice type and options don't exist, initialize with default options
     if (['multiple-choice', 'single-choice'].includes(updates.type || localQuestion.type)) {
@@ -29,6 +60,11 @@ export default function QuestionEditor({ question, onUpdate, onDelete }: Questio
     // If changing away from choice types, remove options
     if (updates.type && !['multiple-choice', 'single-choice'].includes(updates.type)) {
       updated.options = undefined;
+    }
+    
+    // CRITICAL: Always clean title one more time before setting state
+    if (updated.title) {
+      updated.title = String(updated.title).replace(/0+$/, '').trim();
     }
     
     setLocalQuestion(updated);
@@ -107,8 +143,25 @@ export default function QuestionEditor({ question, onUpdate, onDelete }: Questio
         </label>
         <input
           type="text"
-          value={localQuestion.title}
-          onChange={(e) => updateQuestion({ title: e.target.value })}
+          value={String(localQuestion.title || '').replace(/0+$/, '')}
+          onChange={(e) => {
+            // Get the value and immediately remove any trailing zeros
+            let value = e.target.value;
+            // Remove trailing zeros that might have been added - be very aggressive
+            value = value.replace(/0+$/, '').trim();
+            // Only update if the value actually changed (to prevent infinite loops)
+            const currentTitle = String(localQuestion.title || '').replace(/0+$/, '').trim();
+            if (value !== currentTitle) {
+              updateQuestion({ title: value });
+            }
+          }}
+          onBlur={(e) => {
+            // Trim whitespace and remove trailing zeros when user leaves the field
+            const trimmed = e.target.value.trim().replace(/0+$/, '').trim();
+            if (trimmed !== localQuestion.title) {
+              updateQuestion({ title: trimmed });
+            }
+          }}
           placeholder="Enter your question"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         />
@@ -135,8 +188,15 @@ export default function QuestionEditor({ question, onUpdate, onDelete }: Questio
             </label>
             <input
               type="number"
-              value={localQuestion.minRating || 1}
-              onChange={(e) => updateQuestion({ minRating: parseInt(e.target.value) })}
+              min="1"
+              value={localQuestion.minRating ?? 1}
+              onChange={(e) => {
+                const value = e.target.value;
+                const numValue = value === '' ? 1 : parseInt(value, 10);
+                if (!isNaN(numValue) && numValue >= 1) {
+                  updateQuestion({ minRating: numValue });
+                }
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
@@ -146,8 +206,14 @@ export default function QuestionEditor({ question, onUpdate, onDelete }: Questio
             </label>
             <input
               type="number"
-              value={localQuestion.maxRating || 5}
-              onChange={(e) => updateQuestion({ maxRating: parseInt(e.target.value) })}
+              value={localQuestion.maxRating ?? 5}
+              onChange={(e) => {
+                const value = e.target.value;
+                const numValue = value === '' ? 5 : parseInt(value, 10);
+                if (!isNaN(numValue)) {
+                  updateQuestion({ maxRating: numValue });
+                }
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>

@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { Survey, SurveyResponse } from '@/types/survey';
 import { getPool } from '@/lib/db';
+import { cleanQuestionTitle } from './utils';
 
 // Create reusable transporter
 const createTransporter = () => {
@@ -111,7 +112,7 @@ export async function sendSurveySubmissionEmail(
       return `
         <tr>
           <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; vertical-align: top; width: 200px;">
-            ${question.title}
+            ${cleanQuestionTitle(question.title)}
           </td>
           <td style="padding: 10px; border-bottom: 1px solid #eee; vertical-align: top; line-height: 1.8;">
             ${answerText}

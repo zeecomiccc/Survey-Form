@@ -6,6 +6,7 @@ import { CheckCircle, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-reac
 import { Survey, Answer } from '@/types/survey';
 import { storage } from '@/lib/storage';
 import { v4 as uuidv4 } from 'uuid';
+import { cleanQuestionTitle } from '@/lib/utils';
 import QuestionRenderer from '@/components/QuestionRenderer';
 
 function SurveyPageContent() {
@@ -30,7 +31,25 @@ function SurveyPageContent() {
           // Don't redirect to home, just show error
           return;
         }
-        setSurvey(foundSurvey);
+        // Clean all question titles when loading survey - remove trailing zeros
+        // This is critical - the "0" appears in survey form view
+        console.log('Loading survey, cleaning titles...');
+        const cleanedSurvey = {
+          ...foundSurvey,
+          questions: foundSurvey.questions.map(q => {
+            const originalTitle = q.title;
+            const cleanedTitle = cleanQuestionTitle(q.title);
+            if (originalTitle !== cleanedTitle) {
+              console.log('Cleaned question title:', originalTitle, '->', cleanedTitle);
+            }
+            return {
+              ...q,
+              title: cleanedTitle,
+            };
+          }),
+        };
+        console.log('Survey loaded with cleaned titles');
+        setSurvey(cleanedSurvey);
 
         // Check if link token has already been used
         if (linkToken) {
@@ -63,6 +82,27 @@ function SurveyPageContent() {
     };
     loadSurvey();
   }, [surveyId, router, linkToken]);
+
+  // Monitor and clean question titles in real-time (defensive)
+  useEffect(() => {
+    if (survey && survey.questions) {
+      const needsCleaning = survey.questions.some(q => {
+        const title = String(q.title || '').trim();
+        return title.endsWith('0');
+      });
+      
+      if (needsCleaning) {
+        const cleanedSurvey = {
+          ...survey,
+          questions: survey.questions.map(q => ({
+            ...q,
+            title: cleanQuestionTitle(q.title),
+          })),
+        };
+        setSurvey(cleanedSurvey);
+      }
+    }
+  }, [survey]);
 
   const handleAnswerChange = (questionId: string, value: string | string[] | number) => {
     setAnswers({ ...answers, [questionId]: value });

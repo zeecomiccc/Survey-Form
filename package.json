@@ -16,7 +16,8 @@
     "create-admin": "node scripts/create-admin.js",
     "migrate": "node scripts/migrate-add-user-id.js",
     "migrate-email": "node scripts/migrate-add-email-notifications.js",
-    "migrate-login-attempts": "node scripts/migrate-add-login-attempts.js"
+    "migrate-login-attempts": "node scripts/migrate-add-login-attempts.js",
+    "fix-titles": "node scripts/fix-question-titles.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

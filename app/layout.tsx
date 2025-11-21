@@ -16,7 +16,7 @@ export default function RootLayout({
       <body className="flex flex-col min-h-screen h-full">
         <div className="flex-1">{children}</div>
         <footer className="bg-gray-800 text-white py-2 px-4 text-center text-xs border-t border-gray-700 sticky bottom-0 z-50 flex-shrink-0">
-          <p>&copy; {new Date().getFullYear()} Your Company Name. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} ClearPath Orthdontics Pvt Ltd. All rights reserved.</p>
         </footer>
       </body>
     </html>

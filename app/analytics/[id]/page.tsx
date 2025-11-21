@@ -52,7 +52,7 @@ export default function AnalyticsPage() {
     const exportData: any[] = [];
 
     // Add header row
-    const headers = ['Response ID', 'Submitted At', ...survey.questions.map(q => q.title)];
+    const headers = ['Response ID', 'Submitted At', ...survey.questions.map(q => cleanQuestionTitle(q.title))];
     exportData.push(headers);
 
     // Add response data
@@ -267,7 +267,7 @@ export default function AnalyticsPage() {
                 <div key={question.id} className="bg-white rounded-xl shadow-md p-6">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-900">{question.title}</h3>
+                      <h3 className="text-xl font-semibold text-gray-900">{cleanQuestionTitle(question.title)}</h3>
                       {question.description && (
                         <p className="text-gray-600 mb-4 text-sm">{question.description}</p>
                       )}
@@ -314,7 +314,7 @@ export default function AnalyticsPage() {
                                   `${value} (${((value / responses.length) * 100).toFixed(1)}%)`,
                                   name
                                 ]}
-                                labelFormatter={(label) => question.title}
+                                labelFormatter={(label) => cleanQuestionTitle(question.title)}
                               />
                             </PieChart>
                           </ResponsiveContainer>

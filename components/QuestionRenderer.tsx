@@ -2,6 +2,7 @@
 
 import { Question, Answer } from '@/types/survey';
 import { useState } from 'react';
+import { cleanQuestionTitle } from '@/lib/utils';
 
 interface QuestionRendererProps {
   question: Question;
@@ -106,8 +107,8 @@ export default function QuestionRenderer({ question, value, onChange }: Question
         );
 
       case 'rating':
-        const min = question.minRating || 1;
-        const max = question.maxRating || 5;
+        const min = Math.max(1, question.minRating || 1); // Ensure min is at least 1
+        const max = Math.max(min, question.maxRating || 5); // Ensure max is at least min
         return (
           <div className="flex gap-2">
             {Array.from({ length: max - min + 1 }, (_, i) => i + min).map((num) => (
@@ -142,12 +143,38 @@ export default function QuestionRenderer({ question, value, onChange }: Question
     }
   };
 
+  // Clean the title to remove any trailing zeros
+  // CRITICAL FIX: The "0" appears when question.required is false
+  // This suggests the title might be getting concatenated with required value somewhere
+  // We need to be very aggressive about cleaning
+  let cleanTitle = cleanQuestionTitle(question.title);
+  // Clean again just in case
+  cleanTitle = cleanQuestionTitle(cleanTitle);
+  
+  // CRITICAL: If required is false and title ends with 0, it's likely the issue
+  // Remove the trailing 0 if required is false
+  if (!question.required && cleanTitle.endsWith('0') && cleanTitle.length > 1) {
+    cleanTitle = cleanTitle.slice(0, -1).trim();
+    console.warn('QuestionRenderer: Removed trailing 0 from non-required question!', {
+      original: question.title,
+      cleaned: cleanTitle,
+      required: question.required,
+    });
+  }
+  
+  // Final safety check - if it still ends with 0, force remove it
+  if (cleanTitle.endsWith('0') && cleanTitle.length > 1) {
+    cleanTitle = cleanTitle.slice(0, -1).trim();
+    console.error('QuestionRenderer: Force removed trailing 0!', cleanTitle);
+  }
+  
   return (
     <div className="mb-8">
-      <label className="block text-lg font-semibold text-gray-900 mb-2">
-        {question.title}
-        {question.required && <span className="text-red-500 ml-1">*</span>}
-      </label>
+      <div className="block text-lg font-semibold text-gray-900 mb-2">
+        {cleanTitle}
+        {/* Only show asterisk if required is true - explicitly check for true to avoid false rendering as 0 */}
+        {question.required === true ? <span className="text-red-500 ml-1">*</span> : null}
+      </div>
       {question.description && (
         <p className="text-gray-600 mb-4">{question.description}</p>
       )}
