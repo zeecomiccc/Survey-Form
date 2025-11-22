@@ -5,6 +5,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { sendSurveySubmissionEmail } from '@/lib/email';
 import { apiRateLimit } from '@/lib/rate-limit';
 
+// Force dynamic rendering (can't be statically generated due to searchParams and database access)
+export const dynamic = 'force-dynamic';
+
 // GET responses for a survey
 export async function GET(request: NextRequest) {
   try {

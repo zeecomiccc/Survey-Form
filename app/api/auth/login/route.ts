@@ -77,11 +77,20 @@ export async function POST(request: NextRequest) {
     });
 
     // Set cookie
+    // Check if we're using HTTPS by checking the X-Forwarded-Proto header
+    // (set by reverse proxy) or request protocol
+    // Behind Apache reverse proxy, X-Forwarded-Proto header should be set
+    const forwardedProto = request.headers.get('x-forwarded-proto');
+    const isSecure = forwardedProto === 'https' || 
+                     request.nextUrl.protocol === 'https:' ||
+                     request.url.startsWith('https://');
+    
     response.cookies.set('auth_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure, // Only require HTTPS if actually using HTTPS
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/', // Explicitly set path to root
     });
 
     return response;

@@ -130,7 +130,14 @@ export const storage = {
     }
   },
 
-  async createSurveyLink(surveyId: string): Promise<{ token: string; url: string; expiresAt: string }> {
+  async createSurveyLink(surveyId: string): Promise<{ 
+    id: string;
+    token: string; 
+    shortCode: string;
+    url: string; 
+    shortUrl: string;
+    expiresAt: string;
+  }> {
     try {
       const response = await fetch('/api/survey-links', {
         method: 'POST',

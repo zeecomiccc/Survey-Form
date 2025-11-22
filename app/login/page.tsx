@@ -22,6 +22,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include', // Include cookies in request
       });
 
       const data = await response.json();
@@ -32,9 +33,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Redirect to home page
-      router.push('/');
-      router.refresh();
+      // Redirect to home page with full page reload to ensure cookie is included
+      window.location.href = '/';
     } catch (error) {
       setError('An error occurred. Please try again.');
       setLoading(false);
