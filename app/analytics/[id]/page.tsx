@@ -6,6 +6,7 @@ import { ArrowLeft, BarChart3, Users, CheckCircle, Download } from 'lucide-react
 import Link from 'next/link';
 import { Survey, SurveyResponse, Question } from '@/types/survey';
 import { storage } from '@/lib/storage';
+import { cleanQuestionTitle } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import * as XLSX from 'xlsx';
 
