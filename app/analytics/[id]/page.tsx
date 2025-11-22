@@ -51,6 +51,7 @@ export default function AnalyticsPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isPolling, setIsPolling] = useState(true);
   const [lastResponseCount, setLastResponseCount] = useState(0);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const toast = useToastContext();
 
   useEffect(() => {
@@ -85,7 +86,7 @@ export default function AnalyticsPage() {
 
   // Real-time polling for responses
   useEffect(() => {
-    if (!isPolling || !surveyId || loading) return;
+    if (!isPolling || !surveyId || loading || isExportingPDF) return;
 
     const pollInterval = setInterval(async () => {
       try {
@@ -108,7 +109,7 @@ export default function AnalyticsPage() {
     }, 5000); // Poll every 5 seconds
 
     return () => clearInterval(pollInterval);
-  }, [isPolling, surveyId, lastResponseCount, loading, toast]);
+  }, [isPolling, surveyId, lastResponseCount, loading, isExportingPDF, toast]);
 
   const getAnswerForQuestion = (response: SurveyResponse, questionId: string) => {
     return response.answers.find(a => a.questionId === questionId)?.value;
@@ -335,9 +336,14 @@ export default function AnalyticsPage() {
   const exportToPDF = async () => {
     if (!survey || responses.length === 0) return;
 
+    // Disable polling and animations during export
+    setIsExportingPDF(true);
     toast.info('Generating PDF... This may take a moment.');
 
     try {
+      // Wait for animations to be disabled (state update + render cycle)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -389,20 +395,25 @@ export default function AnalyticsPage() {
 
         // Try to capture chart as image
         try {
-          // Wait a bit for charts to render
+          // Wait for charts to fully render without animations
           await new Promise(resolve => setTimeout(resolve, 500));
           
           const chartElement = document.querySelector(`#chart-${question.id}`) as HTMLElement;
           if (chartElement) {
             const canvas = await html2canvas(chartElement, {
               backgroundColor: '#ffffff',
-              scale: 2,
+              scale: 3, // Increased from 2 to 3 for higher quality
               logging: false,
               useCORS: true,
+              allowTaint: true,
+              windowWidth: chartElement.scrollWidth,
+              windowHeight: chartElement.scrollHeight,
             });
             
+            // PNG format is lossless, so no quality parameter needed
             const imgData = canvas.toDataURL('image/png');
-            const imgWidth = Math.min(contentWidth, 160);
+            // Increased image width for better quality (from 160mm to 180mm)
+            const imgWidth = Math.min(contentWidth, 180);
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
             // Check if chart fits on current page
@@ -411,6 +422,7 @@ export default function AnalyticsPage() {
               yPosition = 20;
             }
 
+            // Add image with high quality (no compression for PNG)
             pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
             yPosition += imgHeight + 10;
           }
@@ -456,6 +468,9 @@ export default function AnalyticsPage() {
     } catch (error) {
       console.error('Error exporting PDF:', error);
       toast.error('Failed to export PDF. Please try again.');
+    } finally {
+      // Re-enable polling and animations
+      setIsExportingPDF(false);
     }
   };
 
@@ -620,10 +635,13 @@ export default function AnalyticsPage() {
                 </button>
                 <button
                   onClick={exportToPDF}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm md:text-base"
+                  disabled={isExportingPDF}
+                  className={`w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg transition-colors text-sm md:text-base ${
+                    isExportingPDF ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-700'
+                  }`}
                 >
                   <FileDown size={16} className="md:w-5 md:h-5" />
-                  Export PDF
+                  {isExportingPDF ? 'Exporting...' : 'Export PDF'}
                 </button>
               </div>
             )}
@@ -784,6 +802,7 @@ export default function AnalyticsPage() {
                                 fill="#8884d8"
                                 dataKey="count"
                                       paddingAngle={settings.show3D ? 3 : 0}
+                                      isAnimationActive={!isExportingPDF}
                                     >
                                       {stats.map((entry, index) => {
                                         const color = colors[index % colors.length];
@@ -834,6 +853,7 @@ export default function AnalyticsPage() {
                                     <Bar 
                                       dataKey="count" 
                                       radius={settings.show3D ? [8, 8, 0, 0] : [4, 4, 0, 0]}
+                                      isAnimationActive={!isExportingPDF}
                                     >
                                       {stats.map((entry, index) => {
                                         const color = colors[index % colors.length];
@@ -876,6 +896,7 @@ export default function AnalyticsPage() {
                                       stroke={colors[0]}
                                       fill={settings.show3D ? `url(#area-0)` : colors[0]}
                                       strokeWidth={2}
+                                      isAnimationActive={!isExportingPDF}
                                     />
                                   </AreaChart>
                                 </ResponsiveContainer>
@@ -901,6 +922,7 @@ export default function AnalyticsPage() {
                                       strokeWidth={3}
                                       dot={{ fill: colors[0], r: settings.show3D ? 6 : 4 }}
                                       activeDot={{ r: 8 }}
+                                      isAnimationActive={!isExportingPDF}
                                     />
                                   </LineChart>
                                 </ResponsiveContainer>
@@ -926,6 +948,7 @@ export default function AnalyticsPage() {
                                       label={{ position: 'insideStart', fill: '#fff' }}
                                       background
                                       dataKey="value"
+                                      isAnimationActive={!isExportingPDF}
                                     />
                                     <Legend />
                                     <Tooltip 
