@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, BarChart3, FileText, Edit, Trash2, Copy, Mail, Search, Filter, Table as TableIcon, Grid, Eye, Users, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, BarChart3, FileText, Edit, Trash2, Copy, Mail, Search, Filter, Eye, Grid, Table as TableIcon, ArrowUpDown, ArrowUp, ArrowDown, Users } from 'lucide-react';
 import { storage } from '@/lib/storage';
 import { Survey } from '@/types/survey';
 import MobileHeader from '@/components/MobileHeader';
@@ -22,10 +22,10 @@ function ResponseCount({ surveyId }: { surveyId: string }) {
     loadCount();
   }, [surveyId]);
   
-  return <span>{count} responses</span>;
+  return <span>{count}</span>;
 }
 
-export default function Home() {
+export default function TableViewDemo() {
   const router = useRouter();
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [allSurveys, setAllSurveys] = useState<Survey[]>([]);
@@ -34,23 +34,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSort, setFilterSort] = useState<'date' | 'title' | 'responses'>('date');
   const [filterOrder, setFilterOrder] = useState<'asc' | 'desc'>('desc');
-  const [viewMode, setViewMode] = useState<'card' | 'table'>(() => {
-    // Load view mode from localStorage, default to 'card'
-    if (typeof window !== 'undefined') {
-      const savedView = localStorage.getItem('surveyViewMode');
-      return (savedView === 'card' || savedView === 'table') ? savedView : 'card';
-    }
-    return 'card';
-  });
   const toast = useToastContext();
   const modal = useModal();
-
-  // Save view mode to localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('surveyViewMode', viewMode);
-    }
-  }, [viewMode]);
 
   useEffect(() => {
     checkAuth();
@@ -193,6 +178,24 @@ export default function Home() {
     router.push('/login');
   };
 
+  const handleSort = (column: 'date' | 'title' | 'responses') => {
+    if (filterSort === column) {
+      setFilterOrder(filterOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setFilterSort(column);
+      setFilterOrder('desc');
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -206,28 +209,34 @@ export default function Home() {
       <MobileHeader currentUser={currentUser} onLogout={handleLogout} />
 
       <div className="container mx-auto px-4 py-6 md:py-12">
-        <div className="text-center mb-6 md:mb-8">
-          <p className="text-lg md:text-xl text-gray-600 mb-4 md:mb-6 px-2">
-            Create, share, and analyze surveys with ease
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
-            <Link
-              href="/builder"
-              className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors shadow-lg text-sm md:text-base"
-            >
-              <Plus size={18} className="md:w-5 md:h-5" />
-              Create New Survey
-            </Link>
-            <Link
-              href="/builder?templates=true"
-              className="inline-flex items-center gap-2 bg-purple-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors shadow-lg text-sm md:text-base"
-            >
-              📋 Use Template
-            </Link>
+        {/* Header */}
+        <div className="mb-6 md:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Survey Management</h1>
+              <p className="text-gray-600 text-sm md:text-base">Modern table view demo</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                <Grid size={18} />
+                <span className="hidden sm:inline">Card View</span>
+              </Link>
+              <Link
+                href="/builder"
+                className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors shadow-lg text-sm md:text-base"
+              >
+                <Plus size={18} className="md:w-5 md:h-5" />
+                <span className="hidden sm:inline">Create New Survey</span>
+                <span className="sm:hidden">New</span>
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Search, Filter, and View Toggle */}
+        {/* Search and Filter */}
         {allSurveys.length > 0 && (
           <div className="bg-white rounded-xl shadow-md p-4 mb-6">
             <div className="flex flex-col md:flex-row gap-4">
@@ -242,27 +251,6 @@ export default function Home() {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm md:text-base"
                 />
               </div>
-
-              {/* View Toggle - Single Button */}
-              <button
-                onClick={() => setViewMode(viewMode === 'card' ? 'table' : 'card')}
-                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium text-gray-700 shadow-sm"
-                title={`Switch to ${viewMode === 'card' ? 'Table' : 'Card'} View`}
-              >
-                {viewMode === 'card' ? (
-                  <>
-                    <TableIcon size={18} />
-                    <span className="hidden sm:inline">Table View</span>
-                    <span className="sm:hidden">Table</span>
-                  </>
-                ) : (
-                  <>
-                    <Grid size={18} />
-                    <span className="hidden sm:inline">Card View</span>
-                    <span className="sm:hidden">Cards</span>
-                  </>
-                )}
-              </button>
 
               {/* Sort */}
               <div className="flex gap-2">
@@ -323,112 +311,14 @@ export default function Home() {
                 : 'Create your first survey to get started!'}
             </p>
           </div>
-        ) : viewMode === 'card' ? (
-          /* Card View */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-            {surveys.map((survey) => (
-              <div
-                key={survey.id}
-                className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow p-4 md:p-5"
-              >
-                <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-1.5 line-clamp-2">
-                  {survey.title}
-                </h3>
-                {survey.description && (
-                  <p className="text-gray-600 mb-3 text-xs md:text-sm line-clamp-2">
-                    {survey.description}
-                  </p>
-                )}
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                  <span>{survey.questions.length} questions</span>
-                  <ResponseCount surveyId={survey.id} />
-                </div>
-                <div className="flex flex-col sm:flex-row gap-1.5 mb-2.5">
-                  <Link
-                    href={`/survey/${survey.id}`}
-                    className="flex-1 text-center bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors text-xs md:text-sm"
-                  >
-                    View
-                  </Link>
-                  <Link
-                    href={`/analytics/${survey.id}`}
-                    className="flex-1 text-center bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1 text-xs md:text-sm"
-                  >
-                    <BarChart3 size={12} className="md:w-3.5 md:h-3.5" />
-                    Analytics
-                  </Link>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5 pt-2.5 border-t border-gray-200">
-                  <Link
-                    href={`/builder?id=${survey.id}`}
-                    className="text-center bg-blue-50 text-blue-700 px-2 py-1.5 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1 text-xs"
-                  >
-                    <Edit size={10} className="md:w-3 md:h-3" />
-                    <span className="hidden sm:inline">Edit</span>
-                  </Link>
-                  <button
-                    onClick={() => handleDuplicate(survey)}
-                    className="text-center bg-purple-50 text-purple-700 px-2 py-1.5 rounded-lg hover:bg-purple-100 transition-colors flex items-center justify-center gap-1 text-xs"
-                    title="Duplicate survey"
-                  >
-                    <Copy size={10} className="md:w-3 md:h-3" />
-                    <span className="hidden sm:inline">Copy</span>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(survey.id)}
-                    className="text-center bg-red-50 text-red-700 px-2 py-1.5 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1 text-xs"
-                  >
-                    <Trash2 size={10} className="md:w-3 md:h-3" />
-                    <span className="hidden sm:inline">Del</span>
-                  </button>
-                </div>
-                <div className="mt-2.5 pt-2.5 border-t border-gray-200 space-y-2">
-                  <button
-                    onClick={async () => {
-                      try {
-                        const linkData = await storage.createSurveyLink(survey.id);
-                        navigator.clipboard.writeText(linkData.url);
-                        toast.success('Survey link copied to clipboard! This link will expire in 7 days.');
-                      } catch (error) {
-                        toast.error('Failed to create survey link. Please try again.');
-                      }
-                    }}
-                    className="w-full text-xs text-primary-600 hover:text-primary-700 font-medium text-center"
-                  >
-                    Copy Survey Link
-                  </button>
-                  <label className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-700 hover:text-gray-900">
-                    <input
-                      type="checkbox"
-                      checked={survey.emailNotificationsEnabled || false}
-                      onChange={(e) => handleToggleEmailNotifications(survey.id, e.target.checked)}
-                      className="w-3.5 h-3.5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                    />
-                    <Mail size={12} className="text-gray-600 flex-shrink-0" />
-                    <span className="truncate">Email notifications</span>
-                  </label>
-                </div>
-              </div>
-            ))}
-          </div>
         ) : (
-          /* Table View */
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            {/* Desktop Table View */}
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th 
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" 
-                      onClick={() => {
-                        if (filterSort === 'title') {
-                          setFilterOrder(filterOrder === 'asc' ? 'desc' : 'asc');
-                        } else {
-                          setFilterSort('title');
-                          setFilterOrder('desc');
-                        }
-                      }}
-                    >
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('title')}>
                       <div className="flex items-center gap-2">
                         <span>Title</span>
                         {filterSort === 'title' && (
@@ -443,17 +333,7 @@ export default function Home() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Questions
                     </th>
-                    <th 
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" 
-                      onClick={() => {
-                        if (filterSort === 'responses') {
-                          setFilterOrder(filterOrder === 'asc' ? 'desc' : 'asc');
-                        } else {
-                          setFilterSort('responses');
-                          setFilterOrder('desc');
-                        }
-                      }}
-                    >
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('responses')}>
                       <div className="flex items-center gap-2">
                         <span>Responses</span>
                         {filterSort === 'responses' && (
@@ -462,17 +342,7 @@ export default function Home() {
                         {filterSort !== 'responses' && <ArrowUpDown size={14} className="text-gray-400" />}
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" 
-                      onClick={() => {
-                        if (filterSort === 'date') {
-                          setFilterOrder(filterOrder === 'asc' ? 'desc' : 'asc');
-                        } else {
-                          setFilterSort('date');
-                          setFilterOrder('desc');
-                        }
-                      }}
-                    >
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('date')}>
                       <div className="flex items-center gap-2">
                         <span>Created</span>
                         {filterSort === 'date' && (
@@ -518,14 +388,11 @@ export default function Home() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(survey.createdAt).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
+                        {formatDate(survey.createdAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                        <div className="flex items-center justify-center gap-2">
+                          {/* Quick Actions */}
                           <Link
                             href={`/survey/${survey.id}`}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -563,6 +430,7 @@ export default function Home() {
                           </button>
                         </div>
                         
+                        {/* Additional Actions */}
                         <div className="mt-2 flex items-center justify-center gap-2">
                           <button
                             onClick={async () => {
@@ -574,10 +442,10 @@ export default function Home() {
                                 toast.error('Failed to create survey link. Please try again.');
                               }
                             }}
-                            className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+                            className="text-xs text-primary-600 hover:text-primary-700 font-medium"
                             title="Copy Survey Link"
                           >
-                            <Mail size={14} />
+                            <Mail size={14} className="inline mr-1" />
                             Copy Link
                           </button>
                           <label className="flex items-center gap-1 cursor-pointer">
@@ -597,11 +465,80 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
-            
+
+            {/* Mobile Card View (for small screens) */}
+            <div className="md:hidden divide-y divide-gray-200">
+              {surveys.map((survey) => (
+                <div key={survey.id} className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-shrink-0 h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-primary-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-900 truncate">{survey.title}</h3>
+                        {survey.description && (
+                          <p className="text-xs text-gray-600 mt-1 line-clamp-2">{survey.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 mb-3 text-xs text-gray-600">
+                    <span>{survey.questions.length} questions</span>
+                    <span className="flex items-center gap-1">
+                      <Users size={12} />
+                      <ResponseCount surveyId={survey.id} /> responses
+                    </span>
+                    <span>{formatDate(survey.createdAt)}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Link
+                      href={`/survey/${survey.id}`}
+                      className="px-3 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      View
+                    </Link>
+                    <Link
+                      href={`/analytics/${survey.id}`}
+                      className="px-3 py-1.5 text-xs bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1"
+                    >
+                      <BarChart3 size={12} />
+                      Analytics
+                    </Link>
+                    <Link
+                      href={`/builder?id=${survey.id}`}
+                      className="px-3 py-1.5 text-xs bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => handleDuplicate(survey)}
+                      className="px-3 py-1.5 text-xs bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors"
+                    >
+                      Copy
+                    </button>
+                    <button
+                      onClick={() => handleDelete(survey.id)}
+                      className="px-3 py-1.5 text-xs bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Table Footer */}
             <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
               <div className="flex items-center justify-between text-sm text-gray-600">
                 <div>
                   Showing <span className="font-medium">{surveys.length}</span> of <span className="font-medium">{allSurveys.length}</span> surveys
+                </div>
+                <div className="flex items-center gap-2">
+                  <TableIcon size={16} className="text-gray-400" />
+                  <span>Table View</span>
                 </div>
               </div>
             </div>
@@ -611,3 +548,4 @@ export default function Home() {
     </div>
   );
 }
+
