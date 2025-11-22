@@ -12,7 +12,7 @@ export default function CompanyLogo({ href = '/' }: { href?: string }) {
     <img 
       src="/logo.png" 
       alt="Company Logo" 
-      className="h-10 w-auto cursor-pointer"
+      className="h-14 w-auto cursor-pointer"
       onError={() => setLogoError(true)}
     />
   );

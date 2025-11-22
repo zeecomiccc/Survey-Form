@@ -79,12 +79,12 @@ export async function sendSurveySubmissionEmail(
     // Check if email notifications are enabled for this survey
     const pool = getPool();
     const [surveys] = await pool.execute(
-      'SELECT email_notifications_enabled, user_id FROM surveys WHERE id = ?',
+      'SELECT email_notifications_enabled, user_id FROM surveys WHERE id = ? AND deleted_at IS NULL',
       [survey.id]
     ) as any[];
 
     if (surveys.length === 0 || !surveys[0].email_notifications_enabled) {
-      return false; // Notifications not enabled
+      return false; // Notifications not enabled or survey is soft-deleted
     }
 
     const userId = surveys[0].user_id;

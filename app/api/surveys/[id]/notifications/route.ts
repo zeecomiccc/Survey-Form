@@ -18,9 +18,9 @@ export async function PUT(
     const surveyId = params.id;
     const { enabled } = await request.json();
 
-    // Check if user has access
+    // Check if user has access (exclude soft-deleted surveys)
     const [surveys] = await pool.execute(
-      'SELECT user_id FROM surveys WHERE id = ?',
+      'SELECT user_id FROM surveys WHERE id = ? AND deleted_at IS NULL',
       [surveyId]
     ) as any[];
 

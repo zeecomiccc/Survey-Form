@@ -15,8 +15,9 @@ export async function GET(
     console.log('Fetching survey with ID:', surveyId);
 
     // Get survey (public access - anyone with the link can view)
+    // Exclude soft-deleted surveys
     const [surveys] = await pool.execute(
-      'SELECT id, user_id as userId, title, description, email_notifications_enabled as emailNotificationsEnabled, created_at as createdAt, updated_at as updatedAt FROM surveys WHERE id = ?',
+      'SELECT id, user_id as userId, title, description, email_notifications_enabled as emailNotificationsEnabled, created_at as createdAt, updated_at as updatedAt FROM surveys WHERE id = ? AND deleted_at IS NULL',
       [surveyId]
     ) as any[];
 
@@ -84,9 +85,9 @@ export async function PUT(
     const surveyId = params.id;
     const survey: any = await request.json();
 
-    // Check if user has access
+    // Check if user has access (exclude soft-deleted surveys)
     const [surveys] = await pool.execute(
-      'SELECT user_id FROM surveys WHERE id = ?',
+      'SELECT user_id FROM surveys WHERE id = ? AND deleted_at IS NULL',
       [surveyId]
     ) as any[];
 
@@ -162,9 +163,9 @@ export async function DELETE(
     const pool = getPool();
     const surveyId = params.id;
 
-    // Check if user has access
+    // Check if user has access (exclude soft-deleted surveys)
     const [surveys] = await pool.execute(
-      'SELECT user_id FROM surveys WHERE id = ?',
+      'SELECT user_id FROM surveys WHERE id = ? AND deleted_at IS NULL',
       [surveyId]
     ) as any[];
 
@@ -176,8 +177,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Cascade delete will handle related records
-    await pool.execute('DELETE FROM surveys WHERE id = ?', [surveyId]);
+    // Soft delete - set deleted_at timestamp instead of hard delete
+    await pool.execute(
+      'UPDATE surveys SET deleted_at = NOW() WHERE id = ?',
+      [surveyId]
+    );
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

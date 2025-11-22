@@ -19,8 +19,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Plus, Save, Eye, ArrowLeft, GripVertical, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import Link from 'next/link';
+import { Plus, Save, Eye, GripVertical, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import MobileHeader from '@/components/MobileHeader';
 import { v4 as uuidv4 } from 'uuid';
 import { Question, Survey, QuestionType } from '@/types/survey';
 import { storage } from '@/lib/storage';
@@ -134,9 +134,22 @@ function BuilderContent() {
   const [description, setDescription] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [collapsedQuestions, setCollapsedQuestions] = useState<Set<string>>(new Set());
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const loadSurvey = async () => {
+    const loadData = async () => {
+      // Check authentication
+      try {
+        const authResponse = await fetch('/api/auth/me');
+        if (authResponse.ok) {
+          const authData = await authResponse.json();
+          setCurrentUser(authData.user);
+        }
+      } catch (error) {
+        console.error('Auth error:', error);
+      }
+
+      // Load survey if editing
       if (surveyId) {
         const survey = await storage.getSurvey(surveyId);
         if (survey) {
@@ -151,8 +164,13 @@ function BuilderContent() {
         }
       }
     };
-    loadSurvey();
+    loadData();
   }, [surveyId]);
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+  };
 
   const addQuestion = () => {
     const newQuestion: Question = {
@@ -271,33 +289,33 @@ function BuilderContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
-      <div className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+    <div className="min-h-screen bg-gray-50">
+      <MobileHeader
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        showBackButton={true}
+        backButtonLabel="Back to Surveys"
+        backButtonHref="/"
+      />
+      
+      {/* Save button - separate from header */}
+      <div className="bg-white border-b shadow-sm sticky top-[73px] md:top-[73px] z-40">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex justify-end">
+            <button
+              onClick={saveSurvey}
+              className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm md:text-base"
             >
-              <ArrowLeft size={20} />
-              Back to Surveys
-            </Link>
-            <div className="flex gap-3">
-              <button
-                onClick={saveSurvey}
-                className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                <Save size={18} />
-                Save Survey
-              </button>
-            </div>
+              <Save size={16} className="md:w-5 md:h-5" />
+              Save Survey
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="bg-white rounded-xl shadow-md p-8 mb-6">
-          <div className="mb-6">
+      <div className="container mx-auto px-4 py-6 md:py-8 max-w-4xl">
+        <div className="bg-white rounded-xl shadow-md p-4 md:p-8 mb-6">
+          <div className="mb-4 md:mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Survey Title *
             </label>
@@ -306,7 +324,7 @@ function BuilderContent() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter survey title"
-              className="w-full px-4 py-3 text-xl border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-4 py-2 md:py-3 text-base md:text-xl border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
           <div>
@@ -318,19 +336,19 @@ function BuilderContent() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter survey description"
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm md:text-base"
             />
           </div>
         </div>
 
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-semibold text-gray-900">Questions</h2>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <h2 className="text-xl md:text-2xl font-semibold text-gray-900">Questions</h2>
             <button
               onClick={addQuestion}
-              className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm md:text-base"
             >
-              <Plus size={18} />
+              <Plus size={16} className="md:w-5 md:h-5" />
               Add Question
             </button>
           </div>

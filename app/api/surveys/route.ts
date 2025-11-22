@@ -16,11 +16,12 @@ export async function GET(request: NextRequest) {
     const pool = getPool();
     
     // Admin sees all surveys, users see only their own
-    let query = 'SELECT id, user_id as userId, title, description, email_notifications_enabled as emailNotificationsEnabled, created_at as createdAt, updated_at as updatedAt FROM surveys';
+    // Exclude soft-deleted surveys (deleted_at IS NULL)
+    let query = 'SELECT id, user_id as userId, title, description, email_notifications_enabled as emailNotificationsEnabled, created_at as createdAt, updated_at as updatedAt FROM surveys WHERE deleted_at IS NULL';
     let params: any[] = [];
     
     if (currentUser.role !== 'admin') {
-      query += ' WHERE user_id = ?';
+      query += ' AND user_id = ?';
       params.push(currentUser.id);
     }
     
@@ -153,9 +154,9 @@ export async function PUT(request: NextRequest) {
     const pool = getPool();
     const survey: Survey = await request.json();
 
-    // Check if user has access
+    // Check if user has access (exclude soft-deleted surveys)
     const [surveys] = await pool.execute(
-      'SELECT user_id FROM surveys WHERE id = ?',
+      'SELECT user_id FROM surveys WHERE id = ? AND deleted_at IS NULL',
       [survey.id]
     ) as any[];
 

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, UserPlus, Users, ArrowLeft, Shield, User, Edit, Key } from 'lucide-react';
-import Link from 'next/link';
+import { Plus, Trash2, UserPlus, Users, Shield, User, Edit, Key } from 'lucide-react';
+import MobileHeader from '@/components/MobileHeader';
 
 interface UserData {
   id: string;
@@ -206,30 +206,15 @@ export default function UsersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeft size={20} />
-              Back to Surveys
-            </Link>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-700">Welcome, {currentUser?.name}</span>
-              <button
-                onClick={handleLogout}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <MobileHeader
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        showBackButton={true}
+        backButtonLabel="Back to Surveys"
+        backButtonHref="/"
+      />
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-6 md:py-8 max-w-6xl">
         <div className="bg-white rounded-xl shadow-md p-8 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">

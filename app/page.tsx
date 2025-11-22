@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, BarChart3, FileText, Edit, Trash2, Copy, Users, LogOut, Mail } from 'lucide-react';
+import { Plus, BarChart3, FileText, Edit, Trash2, Copy, Mail } from 'lucide-react';
 import { storage } from '@/lib/storage';
 import { Survey } from '@/types/survey';
-import CompanyLogo from '@/components/CompanyLogo';
+import MobileHeader from '@/components/MobileHeader';
 
 function ResponseCount({ surveyId }: { surveyId: string }) {
   const [count, setCount] = useState(0);
@@ -119,65 +119,40 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <CompanyLogo />
-            <div className="flex items-center gap-4">
-              <span className="text-gray-700">Welcome, {currentUser?.name}</span>
-              {currentUser?.role === 'admin' && (
-                <Link
-                  href="/users"
-                  className="flex items-center gap-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100"
-                >
-                  <Users size={18} />
-                  Manage Users
-                </Link>
-              )}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100"
-              >
-                <LogOut size={18} />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <MobileHeader currentUser={currentUser} onLogout={handleLogout} />
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <p className="text-xl text-gray-600 mb-8">
+      <div className="container mx-auto px-4 py-6 md:py-12">
+        <div className="text-center mb-8 md:mb-12">
+          <p className="text-lg md:text-xl text-gray-600 mb-6 md:mb-8 px-2">
             Create, share, and analyze surveys with ease
           </p>
           <Link
             href="/builder"
-            className="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors shadow-lg"
+            className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors shadow-lg text-sm md:text-base"
           >
-            <Plus size={20} />
+            <Plus size={18} className="md:w-5 md:h-5" />
             Create New Survey
           </Link>
         </div>
 
         {surveys.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-xl shadow-md">
-            <FileText size={64} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600 text-lg">No surveys yet</p>
-            <p className="text-gray-500 mt-2">Create your first survey to get started!</p>
+          <div className="text-center py-12 md:py-16 bg-white rounded-xl shadow-md px-4">
+            <FileText size={48} className="md:w-16 md:h-16 mx-auto text-gray-400 mb-4" />
+            <p className="text-gray-600 text-base md:text-lg">No surveys yet</p>
+            <p className="text-gray-500 mt-2 text-sm md:text-base">Create your first survey to get started!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {surveys.map((survey) => (
               <div
                 key={survey.id}
-                className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow p-5"
+                className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow p-4 md:p-5"
               >
-                <h3 className="text-lg font-semibold text-gray-900 mb-1.5">
+                <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-1.5 line-clamp-2">
                   {survey.title}
                 </h3>
                 {survey.description && (
-                  <p className="text-gray-600 mb-3 text-sm line-clamp-2">
+                  <p className="text-gray-600 mb-3 text-xs md:text-sm line-clamp-2">
                     {survey.description}
                   </p>
                 )}
@@ -185,46 +160,46 @@ export default function Home() {
                   <span>{survey.questions.length} questions</span>
                   <ResponseCount surveyId={survey.id} />
                 </div>
-                <div className="flex gap-1.5 mb-2.5">
+                <div className="flex flex-col sm:flex-row gap-1.5 mb-2.5">
                   <Link
                     href={`/survey/${survey.id}`}
-                    className="flex-1 text-center bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors text-sm"
+                    className="flex-1 text-center bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors text-xs md:text-sm"
                   >
                     View
                   </Link>
                   <Link
                     href={`/analytics/${survey.id}`}
-                    className="flex-1 text-center bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1 text-sm"
+                    className="flex-1 text-center bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1 text-xs md:text-sm"
                   >
-                    <BarChart3 size={14} />
+                    <BarChart3 size={12} className="md:w-3.5 md:h-3.5" />
                     Analytics
                   </Link>
                 </div>
-                <div className="flex gap-1.5 pt-2.5 border-t border-gray-200">
+                <div className="grid grid-cols-3 gap-1.5 pt-2.5 border-t border-gray-200">
                   <Link
                     href={`/builder?id=${survey.id}`}
-                    className="flex-1 text-center bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1 text-xs"
+                    className="text-center bg-blue-50 text-blue-700 px-2 py-1.5 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1 text-xs"
                   >
-                    <Edit size={12} />
-                    Edit
+                    <Edit size={10} className="md:w-3 md:h-3" />
+                    <span className="hidden sm:inline">Edit</span>
                   </Link>
                   <button
                     onClick={() => handleDuplicate(survey)}
-                    className="flex-1 text-center bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-100 transition-colors flex items-center justify-center gap-1 text-xs"
+                    className="text-center bg-purple-50 text-purple-700 px-2 py-1.5 rounded-lg hover:bg-purple-100 transition-colors flex items-center justify-center gap-1 text-xs"
                     title="Duplicate survey"
                   >
-                    <Copy size={12} />
-                    Duplicate
+                    <Copy size={10} className="md:w-3 md:h-3" />
+                    <span className="hidden sm:inline">Copy</span>
                   </button>
                   <button
                     onClick={() => handleDelete(survey.id)}
-                    className="flex-1 text-center bg-red-50 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1 text-xs"
+                    className="text-center bg-red-50 text-red-700 px-2 py-1.5 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1 text-xs"
                   >
-                    <Trash2 size={12} />
-                    Delete
+                    <Trash2 size={10} className="md:w-3 md:h-3" />
+                    <span className="hidden sm:inline">Del</span>
                   </button>
                 </div>
-                <div className="mt-2.5 pt-2.5 border-t border-gray-200 space-y-2.5">
+                <div className="mt-2.5 pt-2.5 border-t border-gray-200 space-y-2">
                   <button
                     onClick={async () => {
                       try {
@@ -235,7 +210,7 @@ export default function Home() {
                         alert('Failed to create survey link. Please try again.');
                       }
                     }}
-                    className="w-full text-xs text-primary-600 hover:text-primary-700 font-medium"
+                    className="w-full text-xs text-primary-600 hover:text-primary-700 font-medium text-center"
                   >
                     Copy Survey Link
                   </button>
@@ -246,8 +221,8 @@ export default function Home() {
                       onChange={(e) => handleToggleEmailNotifications(survey.id, e.target.checked)}
                       className="w-3.5 h-3.5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                     />
-                    <Mail size={12} className="text-gray-600" />
-                    <span>Email notifications</span>
+                    <Mail size={12} className="text-gray-600 flex-shrink-0" />
+                    <span className="truncate">Email notifications</span>
                   </label>
                 </div>
               </div>

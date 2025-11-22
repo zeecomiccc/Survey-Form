@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'surveyId is required' }, { status: 400 });
     }
 
-    // Verify survey exists
+    // Verify survey exists (exclude soft-deleted surveys)
     const [surveys] = await pool.execute(
-      'SELECT id FROM surveys WHERE id = ?',
+      'SELECT id FROM surveys WHERE id = ? AND deleted_at IS NULL',
       [surveyId]
     ) as any[];
 

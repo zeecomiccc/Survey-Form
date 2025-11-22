@@ -129,9 +129,9 @@ export async function POST(request: NextRequest) {
 
     // Send email notification if enabled
     try {
-      // Fetch the survey to get questions for email
+      // Fetch the survey to get questions for email (only if not soft-deleted)
       const [surveys] = await pool.execute(
-        'SELECT id, user_id, title, description, email_notifications_enabled FROM surveys WHERE id = ?',
+        'SELECT id, user_id, title, description, email_notifications_enabled FROM surveys WHERE id = ? AND deleted_at IS NULL',
         [response.surveyId]
       ) as any[];
 
