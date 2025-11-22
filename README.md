@@ -10,16 +10,35 @@ Email: naveed@globaloutreach.co
 
 ## 🚀 Features
 
+### Survey Management
 - **Survey Creation**: Build surveys with multiple question types (text, multiple-choice, single-choice, rating, yes/no, date)
-- **User Management**: Admin and user roles with proper access control
+- **Survey Templates**: Pre-built templates for common survey types (Customer Feedback, NPS, Event Feedback, Product Satisfaction, Employee Satisfaction)
 - **Survey Distribution**: Generate unique, expiring survey links (7-day expiration)
 - **One Submission Per Link**: Prevent duplicate submissions with unique link tokens
+- **Soft Delete**: Surveys are soft-deleted (preserved in database) for data recovery
+- **Search & Filter**: Search surveys by title/description and sort by date, title, or response count
+- **Dual View Modes**: Toggle between Card View and Table View for survey listing
+- **View Preference**: View mode preference automatically saved and restored on reload
+
+### Analytics & Reports
 - **Analytics Dashboard**: Visual charts and statistics for survey responses
-- **Export to Excel**: Download survey responses as Excel files
-- **Email Notifications**: Receive email alerts when responses are submitted
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Chart Customization**: Multiple chart types (Pie, Doughnut, Column, Bar, Area, Line, Gauge) with customizable color palettes and 3D effects
+- **Real-time Updates**: Auto-polling for new responses (toggle on/off) with notifications
+- **Export to Excel**: Download comprehensive Excel reports with calculated statistics, percentages, and multiple sheets
+- **Export to PDF**: Export analytics with charts as PDF documents using jsPDF and html2canvas
+
+### User Experience
+- **Modern UI Components**: Toast notifications and Modal dialogs replace browser alerts/confirms
+- **Better Error Handling**: User-friendly error messages with toast notifications
+- **Responsive Design**: Fully responsive design that works seamlessly on desktop and mobile devices
+- **Mobile Menu**: Hamburger menu for mobile devices with smooth transitions
 - **Drag & Drop**: Reorder questions easily in the survey builder
 - **Progress Tracking**: One question at a time with progress indicator
+- **Loading States**: Proper loading indicators throughout the application
+
+### User Management
+- **User Management**: Admin and user roles with proper access control
+- **Email Notifications**: Receive email alerts when responses are submitted
 
 ## 📋 Prerequisites
 
@@ -148,21 +167,35 @@ Survey/
 │   │   └── users/        # User management
 │   ├── analytics/        # Analytics dashboard
 │   ├── builder/          # Survey builder
+│   ├── demo/             # Table view demo page
 │   ├── login/            # Login page
 │   ├── survey/           # Public survey view
 │   └── users/            # User management page
 ├── components/            # React components
+│   ├── CompanyLogo.tsx   # Company logo component (with size options)
+│   ├── MobileHeader.tsx  # Responsive header with mobile menu
+│   ├── Modal.tsx         # Modal dialog component
+│   ├── Toast.tsx         # Toast notification component
+│   └── ...               # Other components
+├── contexts/             # React contexts
+│   └── ToastContext.tsx  # Toast notification context
+├── hooks/                # Custom React hooks
+│   ├── useModal.ts       # Modal hook
+│   └── useToast.ts       # Toast hook
 ├── database/             # Database schema and dumps
 │   ├── schema.sql        # Database schema
 │   └── dump.sql          # Complete database dump
 ├── lib/                  # Utility libraries
 │   ├── auth.ts          # Authentication helpers
-│   ├── db.ts            # Database connection
+│   ├── db.ts            # Database connection pool
 │   ├── email.ts         # Email service
-│   └── storage.ts       # Data access layer
+│   ├── storage.ts       # Data access layer
+│   ├── surveyTemplates.ts # Survey template definitions
+│   └── utils.ts         # Utility functions
 ├── scripts/              # Setup and migration scripts
 ├── types/                # TypeScript type definitions
 └── public/               # Static assets
+    └── logo.png          # Company logo
 ```
 
 ## 🔐 Security
@@ -208,6 +241,16 @@ For brute force protection:
 ```bash
 npm run migrate-login-attempts
 ```
+
+### Add Soft Delete Support
+
+To enable soft delete for surveys (surveys are marked as deleted but preserved in database):
+
+```bash
+npm run migrate-soft-delete
+```
+
+This adds a `deleted_at` column to the surveys table, allowing for data recovery.
 
 ## 📝 API Endpoints
 
@@ -295,6 +338,21 @@ For issues and questions:
 
 ## 🔄 Version History
 
+- **v1.1.0** - Enhanced User Experience Update
+  - ✨ Toast notifications and Modal dialogs replace browser alerts/confirms
+  - 🔍 Search and filter functionality for surveys (by title, description, sort by date/title/responses)
+  - 📋 Survey templates system (5 pre-built templates)
+  - 🔄 Real-time polling for analytics page with auto-update toggle
+  - 📊 PDF export with charts using jsPDF and html2canvas
+  - 👁️ Dual view modes (Card View and Table View) with preference saving
+  - 🗑️ Soft delete for surveys (data preserved for recovery)
+  - 📱 Improved mobile responsiveness with hamburger menu
+  - 🎨 Chart customization (multiple types, color palettes, 3D effects)
+  - 📈 Enhanced Excel export with calculated statistics and percentages
+  - 🔧 Better error handling with user-friendly toast messages
+  - ⚙️ Database connection pool optimization
+  - 🎯 Loading states and improved UX throughout
+
 - **v1.0.0** - Initial release
   - Survey creation and management
   - User authentication and authorization
@@ -304,6 +362,7 @@ For issues and questions:
 
 ## 📚 Additional Documentation
 
+- [CHANGELOG.md](CHANGELOG.md) - Detailed changelog and version history
 - [SECURITY.md](SECURITY.md) - Security checklist and best practices
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment guide
 - [README-EMAIL.md](README-EMAIL.md) - Email notification setup guide
