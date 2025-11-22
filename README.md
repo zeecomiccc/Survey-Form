@@ -74,6 +74,14 @@ cp .env.example .env.local
 Edit `.env.local` with your configuration:
 
 ```env
+# Application Configuration
+# App name displayed throughout the application
+NEXT_PUBLIC_APP_NAME=Survey Platform
+NEXT_PUBLIC_APP_DESCRIPTION=A modern survey platform for creating, sharing, and analyzing surveys
+
+# Next.js Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
 # Database Configuration
 DB_HOST=localhost
 DB_USER=your_database_user

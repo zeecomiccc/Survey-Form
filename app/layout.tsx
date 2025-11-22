@@ -2,9 +2,12 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { ToastProvider } from '@/contexts/ToastContext'
 
+const appName = process.env.NEXT_PUBLIC_APP_NAME || 'Survey Platform';
+const appDescription = process.env.NEXT_PUBLIC_APP_DESCRIPTION || 'A modern survey platform for creating, sharing, and analyzing surveys';
+
 export const metadata: Metadata = {
-  title: 'Survey App - Create & Analyze Surveys',
-  description: 'A modern survey platform for creating, sharing, and analyzing surveys',
+  title: `${appName} - Create & Analyze Surveys`,
+  description: appDescription,
 }
 
 export default function RootLayout({

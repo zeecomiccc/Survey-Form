@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { config } from '@/lib/config';
 
 interface CompanyLogoProps {
   href?: string;
@@ -29,7 +30,7 @@ export default function CompanyLogo({ href = '/', size = 'default' }: CompanyLog
   };
 
   const logoContent = logoError ? (
-    <h1 className={`${textSizeClasses[size]} font-bold text-gray-900`}>Survey Platform</h1>
+    <h1 className={`${textSizeClasses[size]} font-bold text-gray-900`}>{config.app.name}</h1>
   ) : (
     <img 
       src="/logo.png" 
