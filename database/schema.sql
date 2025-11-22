@@ -107,16 +107,18 @@ CREATE TABLE IF NOT EXISTS answer_options (
     INDEX idx_answer_id (answer_id)
 );
 
--- Survey links table (for shareable links with expiration)
+-- Survey links table (for shareable links with expiration and short codes)
 CREATE TABLE IF NOT EXISTS survey_links (
     id VARCHAR(36) PRIMARY KEY,
     survey_id VARCHAR(36) NOT NULL,
     token VARCHAR(64) UNIQUE NOT NULL,
+    short_code VARCHAR(10) UNIQUE NULL,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (survey_id) REFERENCES surveys(id) ON DELETE CASCADE,
     INDEX idx_survey_id (survey_id),
     INDEX idx_token (token),
+    INDEX idx_short_code (short_code),
     INDEX idx_expires_at (expires_at)
 );
 
