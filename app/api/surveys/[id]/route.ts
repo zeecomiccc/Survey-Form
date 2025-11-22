@@ -45,6 +45,7 @@ export async function GET(
         const cleanedQuestion = {
           ...question,
           title: cleanTitle,
+          required: Boolean(question.required), // Convert to boolean (MySQL returns 0/1)
         };
         
         if (['multiple-choice', 'single-choice'].includes(question.type)) {

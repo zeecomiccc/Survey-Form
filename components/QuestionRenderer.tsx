@@ -143,37 +143,24 @@ export default function QuestionRenderer({ question, value, onChange }: Question
     }
   };
 
-  // Clean the title to remove any trailing zeros
-  // CRITICAL FIX: The "0" appears when question.required is false
-  // This suggests the title might be getting concatenated with required value somewhere
-  // We need to be very aggressive about cleaning
+  // Clean the title to remove any trailing zeros - be very aggressive
   let cleanTitle = cleanQuestionTitle(question.title);
-  // Clean again just in case
+  
+  // Additional aggressive cleaning: remove any trailing "0" regardless of context
+  // This handles cases where "0" might be added due to boolean false conversion
+  while (cleanTitle.endsWith('0') && cleanTitle.length > 1) {
+    cleanTitle = cleanTitle.slice(0, -1).trim();
+  }
+  
+  // Final pass with the utility function
   cleanTitle = cleanQuestionTitle(cleanTitle);
-  
-  // CRITICAL: If required is false and title ends with 0, it's likely the issue
-  // Remove the trailing 0 if required is false
-  if (!question.required && cleanTitle.endsWith('0') && cleanTitle.length > 1) {
-    cleanTitle = cleanTitle.slice(0, -1).trim();
-    console.warn('QuestionRenderer: Removed trailing 0 from non-required question!', {
-      original: question.title,
-      cleaned: cleanTitle,
-      required: question.required,
-    });
-  }
-  
-  // Final safety check - if it still ends with 0, force remove it
-  if (cleanTitle.endsWith('0') && cleanTitle.length > 1) {
-    cleanTitle = cleanTitle.slice(0, -1).trim();
-    console.error('QuestionRenderer: Force removed trailing 0!', cleanTitle);
-  }
   
   return (
     <div className="mb-8">
       <div className="block text-lg font-semibold text-gray-900 mb-2">
-        {cleanTitle}
-        {/* Only show asterisk if required is true - explicitly check for true to avoid false rendering as 0 */}
-        {question.required === true ? <span className="text-red-500 ml-1">*</span> : null}
+        <span>{cleanTitle}</span>
+        {/* Show red asterisk for mandatory/required fields */}
+        {question.required && <span className="text-red-500 ml-1 font-bold">*</span>}
       </div>
       {question.description && (
         <p className="text-gray-600 mb-4">{question.description}</p>
