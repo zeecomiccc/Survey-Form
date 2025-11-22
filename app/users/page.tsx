@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, UserPlus, Users, Shield, User, Edit, Key } from 'lucide-react';
 import MobileHeader from '@/components/MobileHeader';
+import { useToastContext } from '@/contexts/ToastContext';
+import { useModal } from '@/hooks/useModal';
+import Modal from '@/components/Modal';
 
 interface UserData {
   id: string;
@@ -34,6 +37,8 @@ export default function UsersPage() {
   });
   const [showResetPassword, setShowResetPassword] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState('');
+  const toast = useToastContext();
+  const modal = useModal();
 
   useEffect(() => {
     checkAuth();
@@ -85,37 +90,49 @@ export default function UsersPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        alert(data.error || 'Failed to create user');
+        toast.error(data.error || 'Failed to create user');
         return;
       }
 
       setShowAddForm(false);
       setFormData({ email: '', password: '', name: '', role: 'user' });
       loadUsers();
+      toast.success('User created successfully!');
     } catch (error) {
-      alert('Failed to create user');
+      toast.error('Failed to create user. Please try again.');
+      console.error(error);
     }
   };
 
   const handleDeleteUser = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this user? This will also delete all their surveys.')) {
-      return;
-    }
+    const user = users.find(u => u.id === id);
+    modal.openModal(
+      {
+        title: 'Delete User',
+        message: `Are you sure you want to delete ${user?.name || 'this user'}? This will also delete all their surveys. This action cannot be undone.`,
+        type: 'danger',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+      },
+      async () => {
+        try {
+          const response = await fetch(`/api/users?id=${id}`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const response = await fetch(`/api/users?id=${id}`, {
-        method: 'DELETE',
-      });
+          if (!response.ok) {
+            toast.error('Failed to delete user');
+            return;
+          }
 
-      if (!response.ok) {
-        alert('Failed to delete user');
-        return;
+          loadUsers();
+          toast.success('User deleted successfully');
+        } catch (error) {
+          toast.error('Failed to delete user. Please try again.');
+          console.error(error);
+        }
       }
-
-      loadUsers();
-    } catch (error) {
-      alert('Failed to delete user');
-    }
+    );
   };
 
   const handleEditUser = (user: UserData) => {
@@ -152,15 +169,17 @@ export default function UsersPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        alert(data.error || 'Failed to update user');
+        toast.error(data.error || 'Failed to update user');
         return;
       }
 
       setEditingUser(null);
       setEditFormData({ email: '', name: '', role: 'user', password: '' });
       loadUsers();
+      toast.success('User updated successfully!');
     } catch (error) {
-      alert('Failed to update user');
+      toast.error('Failed to update user. Please try again.');
+      console.error(error);
     }
   };
 
@@ -183,11 +202,12 @@ export default function UsersPage() {
         return;
       }
 
+      toast.success('Password reset successfully');
       setShowResetPassword(null);
       setResetPassword('');
-      alert('Password reset successfully');
     } catch (error) {
-      alert('Failed to reset password');
+      toast.error('Failed to reset password. Please try again.');
+      console.error(error);
     }
   };
 

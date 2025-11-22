@@ -19,13 +19,17 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Plus, Save, Eye, GripVertical, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Save, Eye, GripVertical, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react';
 import MobileHeader from '@/components/MobileHeader';
 import { v4 as uuidv4 } from 'uuid';
 import { Question, Survey, QuestionType } from '@/types/survey';
 import { storage } from '@/lib/storage';
 import QuestionEditor from '@/components/QuestionEditor';
 import { cleanQuestionTitle } from '@/lib/utils';
+import { surveyTemplates } from '@/lib/surveyTemplates';
+import { useToastContext } from '@/contexts/ToastContext';
+import { useModal } from '@/hooks/useModal';
+import Modal from '@/components/Modal';
 
 function SortableQuestion({
   question,
@@ -129,12 +133,16 @@ function BuilderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const surveyId = searchParams.get('id');
+  const       showTemplates = searchParams.get('templates') === 'true';
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [collapsedQuestions, setCollapsedQuestions] = useState<Set<string>>(new Set());
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(showTemplates);
+  const toast = useToastContext();
+  const modalHook = useModal();
 
   useEffect(() => {
     const loadData = async () => {
@@ -171,6 +179,80 @@ function BuilderContent() {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
   };
+
+  const loadTemplate = (templateId: string) => {
+    const template = surveyTemplates.find(t => t.id === templateId);
+    if (template) {
+      setTitle(template.survey.title);
+      setDescription(template.survey.description || '');
+      
+      // Regenerate IDs for questions and options
+      const templateQuestions = template.survey.questions.map((q, idx) => ({
+        ...q,
+        id: uuidv4(),
+        order: idx,
+        options: q.options?.map(opt => ({
+          ...opt,
+          id: uuidv4(),
+        })),
+      }));
+      
+      setQuestions(templateQuestions);
+      setShowTemplateSelector(false);
+      toast.success(`Template "${template.name}" loaded successfully!`);
+    }
+  };
+
+  // Template Selector Component
+  const TemplateSelector = () => (
+    <div className="fixed inset-0 z-[10001] bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Choose a Survey Template</h2>
+          <button
+            onClick={() => {
+              setShowTemplateSelector(false);
+              if (!surveyId) {
+                router.push('/builder');
+              }
+            }}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X size={24} />
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {surveyTemplates.map((template) => (
+            <button
+              key={template.id}
+              onClick={() => loadTemplate(template.id)}
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:shadow-lg transition-all text-left"
+            >
+              <div className="text-4xl mb-3">{template.icon}</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{template.name}</h3>
+              <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+              <div className="text-xs text-gray-500">
+                {template.survey.questions.length} questions
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="mt-6 pt-6 border-t border-gray-200 text-center">
+          <button
+            onClick={() => {
+              setShowTemplateSelector(false);
+              if (!surveyId) {
+                router.push('/builder');
+              }
+            }}
+            className="text-primary-600 hover:text-primary-700 font-medium"
+          >
+            Start from scratch instead
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   const addQuestion = () => {
     const newQuestion: Question = {
@@ -241,20 +323,20 @@ function BuilderContent() {
 
   const saveSurvey = async () => {
     if (!title.trim()) {
-      alert('Please enter a survey title');
+      toast.error('Please enter a survey title');
       return;
     }
 
     // Check if there are any questions at all
     if (questions.length === 0) {
-      alert('Please add at least one question before saving the survey');
+      toast.error('Please add at least one question before saving the survey');
       return;
     }
 
     // Filter out questions without titles and check if any valid questions remain
     const validQuestions = questions.filter(q => q.title.trim());
     if (validQuestions.length === 0) {
-      alert('Please add at least one question with a title before saving the survey');
+      toast.error('Please add at least one question with a title before saving the survey');
       return;
     }
 
@@ -281,15 +363,28 @@ function BuilderContent() {
       };
 
       await storage.saveSurvey(survey);
+      toast.success('Survey saved successfully!');
       router.push('/');
     } catch (error) {
-      alert('Failed to save survey. Please try again.');
+      toast.error('Failed to save survey. Please try again.');
       console.error(error);
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showTemplateSelector && <TemplateSelector />}
+      <Modal
+        isOpen={modalHook.isOpen}
+        onClose={modalHook.closeModal}
+        onConfirm={modalHook.confirm}
+        title={modalHook.modalOptions.title}
+        message={modalHook.modalOptions.message}
+        confirmText={modalHook.modalOptions.confirmText}
+        cancelText={modalHook.modalOptions.cancelText}
+        type={modalHook.modalOptions.type}
+        showCancel={modalHook.modalOptions.showCancel}
+      />
       <MobileHeader
         currentUser={currentUser}
         onLogout={handleLogout}

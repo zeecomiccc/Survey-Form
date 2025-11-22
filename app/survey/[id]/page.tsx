@@ -8,6 +8,7 @@ import { storage } from '@/lib/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { cleanQuestionTitle } from '@/lib/utils';
 import QuestionRenderer from '@/components/QuestionRenderer';
+import { useToastContext } from '@/contexts/ToastContext';
 
 function SurveyPageContent() {
   const params = useParams();
@@ -15,6 +16,7 @@ function SurveyPageContent() {
   const searchParams = useSearchParams();
   const surveyId = params.id as string;
   const linkToken = searchParams.get('token');
+  const toast = useToastContext();
   
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [answers, setAnswers] = useState<Record<string, string | string[] | number>>({});
@@ -22,13 +24,16 @@ function SurveyPageContent() {
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadSurvey = async () => {
+      setLoading(true);
       try {
         const foundSurvey = await storage.getSurvey(surveyId);
         if (!foundSurvey) {
           // Don't redirect to home, just show error
+          setLoading(false);
           return;
         }
         // Clean all question titles when loading survey - remove trailing zeros
@@ -50,6 +55,7 @@ function SurveyPageContent() {
         };
         console.log('Survey loaded with cleaned titles');
         setSurvey(cleanedSurvey);
+        setLoading(false);
 
         // Check if link token has already been used
         if (linkToken) {
@@ -78,6 +84,7 @@ function SurveyPageContent() {
         }
       } catch (error) {
         console.error('Error loading survey:', error);
+        setLoading(false);
       }
     };
     loadSurvey();
@@ -172,9 +179,16 @@ function SurveyPageContent() {
   const handleSubmit = async () => {
     if (!survey || !validateAllAnswers()) {
       // If validation fails, go to first question with error
-      const firstErrorIndex = survey.questions.findIndex(q => 
-        q.required && (!answers[q.id] || (Array.isArray(answers[q.id]) && answers[q.id].length === 0) || answers[q.id] === '')
-      );
+      if (!survey) return;
+      const firstErrorIndex = survey.questions.findIndex(q => {
+        if (!q.required) return false;
+        const answer = answers[q.id];
+        return !answer || 
+               (Array.isArray(answer) && answer.length === 0) || 
+               (typeof answer === 'string' && answer === '') ||
+               answer === null ||
+               answer === undefined;
+      });
       if (firstErrorIndex >= 0) {
         setCurrentQuestionIndex(firstErrorIndex);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -206,16 +220,29 @@ function SurveyPageContent() {
       }
       
       setSubmitted(true);
+      toast.success('Thank you! Your response has been submitted successfully.');
     } catch (error: any) {
       if (error.message && error.message.includes('already been used')) {
         setAlreadySubmitted(true);
-        alert('This link has already been used to submit a response. Please request a new link.');
+        toast.error('This link has already been used to submit a response. Please request a new link.');
       } else {
-        alert('Failed to submit response. Please try again.');
+        toast.error('Failed to submit response. Please try again.');
         console.error(error);
       }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Survey...</h2>
+          <p className="text-gray-600 text-sm">Please wait while we fetch the survey.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!survey) {
     return (

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { BarChart3, Users, CheckCircle, Download, Settings2, Palette } from 'lucide-react';
+import { BarChart3, Users, CheckCircle, Download, Settings2, Palette, FileDown, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import MobileHeader from '@/components/MobileHeader';
 import { Survey, SurveyResponse, Question } from '@/types/survey';
@@ -14,6 +14,9 @@ import {
   RadialBarChart, RadialBar
 } from 'recharts';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { useToastContext } from '@/contexts/ToastContext';
 
 type ChartType = 'pie' | 'doughnut' | 'column' | 'bar' | 'area' | 'line' | 'gauge';
 type ColorPalette = 'default' | 'vibrant' | 'pastel' | 'dark' | 'ocean' | 'sunset' | 'forest' | 'rainbow';
@@ -46,6 +49,9 @@ export default function AnalyticsPage() {
   const [chartSettings, setChartSettings] = useState<Record<string, ChartSettings>>({});
   const [openSettings, setOpenSettings] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isPolling, setIsPolling] = useState(true);
+  const [lastResponseCount, setLastResponseCount] = useState(0);
+  const toast = useToastContext();
 
   useEffect(() => {
     const loadData = async () => {
@@ -66,14 +72,43 @@ export default function AnalyticsPage() {
         setSurvey(foundSurvey);
         const surveyResponses = await storage.getResponses(surveyId);
         setResponses(surveyResponses);
+        setLastResponseCount(surveyResponses.length);
       } catch (error) {
         console.error('Error loading analytics:', error);
+        toast.error('Failed to load analytics data');
       } finally {
         setLoading(false);
       }
     };
     loadData();
-  }, [surveyId, router]);
+  }, [surveyId, router, toast]);
+
+  // Real-time polling for responses
+  useEffect(() => {
+    if (!isPolling || !surveyId || loading) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const surveyResponses = await storage.getResponses(surveyId);
+        const newCount = surveyResponses.length;
+        
+        if (newCount > lastResponseCount) {
+          setResponses(surveyResponses);
+          setLastResponseCount(newCount);
+          const newResponses = newCount - lastResponseCount;
+          toast.info(`${newResponses} new response${newResponses > 1 ? 's' : ''} received!`, 4000);
+        } else if (newCount < lastResponseCount) {
+          // Response was deleted
+          setResponses(surveyResponses);
+          setLastResponseCount(newCount);
+        }
+      } catch (error) {
+        console.error('Error polling responses:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [isPolling, surveyId, lastResponseCount, loading, toast]);
 
   const getAnswerForQuestion = (response: SurveyResponse, questionId: string) => {
     return response.answers.find(a => a.questionId === questionId)?.value;
@@ -294,6 +329,134 @@ export default function AnalyticsPage() {
     // Export file
     const fileName = `${survey.title.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(wb, fileName);
+    toast.success('Excel file exported successfully!');
+  };
+
+  const exportToPDF = async () => {
+    if (!survey || responses.length === 0) return;
+
+    toast.info('Generating PDF... This may take a moment.');
+
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let yPosition = 20;
+      const margin = 20;
+      const contentWidth = pageWidth - 2 * margin;
+
+      // Add title
+      pdf.setFontSize(20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(survey.title, margin, yPosition, { maxWidth: contentWidth });
+      yPosition += 10;
+
+      // Add description if exists
+      if (survey.description) {
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        const descriptionLines = pdf.splitTextToSize(survey.description, contentWidth);
+        pdf.text(descriptionLines, margin, yPosition);
+        yPosition += descriptionLines.length * 7 + 5;
+      }
+
+      // Add metadata
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Total Responses: ${responses.length}`, margin, yPosition);
+      yPosition += 7;
+      pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, yPosition);
+      yPosition += 15;
+
+      // Process each question with charts
+      for (const question of survey.questions) {
+        // Check if we need a new page
+        if (yPosition > pageHeight - 80) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        const stats = getQuestionStats(question);
+        if (!stats || !Array.isArray(stats) || stats.length === 0) continue;
+
+        // Add question title
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        const questionTitle = cleanQuestionTitle(question.title);
+        const titleLines = pdf.splitTextToSize(questionTitle, contentWidth);
+        pdf.text(titleLines, margin, yPosition);
+        yPosition += titleLines.length * 7 + 5;
+
+        // Try to capture chart as image
+        try {
+          // Wait a bit for charts to render
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const chartElement = document.querySelector(`#chart-${question.id}`) as HTMLElement;
+          if (chartElement) {
+            const canvas = await html2canvas(chartElement, {
+              backgroundColor: '#ffffff',
+              scale: 2,
+              logging: false,
+              useCORS: true,
+            });
+            
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = Math.min(contentWidth, 160);
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            // Check if chart fits on current page
+            if (yPosition + imgHeight > pageHeight - 20) {
+              pdf.addPage();
+              yPosition = 20;
+            }
+
+            pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
+            yPosition += imgHeight + 10;
+          }
+        } catch (error) {
+          console.error('Error capturing chart:', error);
+          // Continue even if chart capture fails
+        }
+
+        // Add statistics table
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Option/Value', margin, yPosition);
+        pdf.text('Count', margin + 80, yPosition);
+        pdf.text('Percentage', margin + 120, yPosition);
+        yPosition += 7;
+
+        pdf.setFont('helvetica', 'normal');
+        const totalResponses = responses.length;
+        stats.forEach((stat) => {
+          const percentage = totalResponses > 0 ? ((stat.count / totalResponses) * 100).toFixed(1) : '0.0';
+          const statName = pdf.splitTextToSize(stat.name, 70);
+          const statCount = stat.count.toString();
+          const statPercentage = `${percentage}%`;
+
+          if (yPosition > pageHeight - 20) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+
+          pdf.text(statName, margin, yPosition);
+          pdf.text(statCount, margin + 80, yPosition);
+          pdf.text(statPercentage, margin + 120, yPosition);
+          yPosition += Math.max(statName.length * 5, 7);
+        });
+
+        yPosition += 10;
+      }
+
+      // Save PDF
+      const fileName = `${survey.title.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+      toast.success('PDF exported successfully!');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Failed to export PDF. Please try again.');
+    }
   };
 
   // Get or initialize chart settings for a question
@@ -435,13 +598,34 @@ export default function AnalyticsPage() {
               </div>
             </div>
             {responses.length > 0 && (
-              <button
-                onClick={exportToExcel}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm md:text-base"
-              >
-                <Download size={16} className="md:w-5 md:h-5" />
-                Export to Excel
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setIsPolling(!isPolling)}
+                  className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm md:text-base ${
+                    isPolling
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                  title={isPolling ? 'Real-time updates enabled' : 'Click to enable real-time updates'}
+                >
+                  <RefreshCw size={16} className={`md:w-5 md:h-5 ${isPolling ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">{isPolling ? 'Auto-Update On' : 'Auto-Update Off'}</span>
+                </button>
+                <button
+                  onClick={exportToExcel}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm md:text-base"
+                >
+                  <Download size={16} className="md:w-5 md:h-5" />
+                  Export Excel
+                </button>
+                <button
+                  onClick={exportToPDF}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm md:text-base"
+                >
+                  <FileDown size={16} className="md:w-5 md:h-5" />
+                  Export PDF
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -557,7 +741,7 @@ export default function AnalyticsPage() {
                             </div>
 
                             {/* Chart Rendering */}
-                            <div className="relative">
+                            <div id={`chart-${question.id}`} className="relative bg-white p-4 rounded-lg">
                               {/* SVG Gradients for 3D Effect */}
                               {settings.show3D && (
                                 <svg width="0" height="0" style={{ position: 'absolute' }}>
