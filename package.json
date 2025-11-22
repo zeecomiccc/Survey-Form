@@ -18,6 +18,7 @@
     "migrate-email": "node scripts/migrate-add-email-notifications.js",
     "migrate-login-attempts": "node scripts/migrate-add-login-attempts.js",
     "migrate-soft-delete": "node scripts/migrate-add-soft-delete.js",
+    "migrate-short-code": "node scripts/migrate-add-short-code.js",
     "fix-titles": "node scripts/fix-question-titles.js"
   },
   "dependencies": {

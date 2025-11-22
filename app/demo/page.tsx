@@ -436,16 +436,21 @@ export default function TableViewDemo() {
                             onClick={async () => {
                               try {
                                 const linkData = await storage.createSurveyLink(survey.id);
-                                navigator.clipboard.writeText(linkData.url);
-                                toast.success('Survey link copied to clipboard!');
+                                if (linkData.shortUrl) {
+                                  navigator.clipboard.writeText(linkData.shortUrl);
+                                  toast.success('Short link copied!');
+                                } else {
+                                  navigator.clipboard.writeText(linkData.url);
+                                  toast.success('Link copied!');
+                                }
                               } catch (error) {
                                 toast.error('Failed to create survey link. Please try again.');
                               }
                             }}
-                            className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                            className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
                             title="Copy Survey Link"
                           >
-                            <Mail size={14} className="inline mr-1" />
+                            <Mail size={14} />
                             Copy Link
                           </button>
                           <label className="flex items-center gap-1 cursor-pointer">

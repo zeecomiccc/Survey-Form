@@ -387,8 +387,13 @@ export default function Home() {
                     onClick={async () => {
                       try {
                         const linkData = await storage.createSurveyLink(survey.id);
-                        navigator.clipboard.writeText(linkData.url);
-                        toast.success('Survey link copied to clipboard! This link will expire in 7 days.');
+                        if (linkData.shortUrl) {
+                          navigator.clipboard.writeText(linkData.shortUrl);
+                          toast.success('Short link copied to clipboard! This link will expire in 7 days.');
+                        } else {
+                          navigator.clipboard.writeText(linkData.url);
+                          toast.success('Survey link copied to clipboard! This link will expire in 7 days.');
+                        }
                       } catch (error) {
                         toast.error('Failed to create survey link. Please try again.');
                       }
@@ -568,8 +573,13 @@ export default function Home() {
                             onClick={async () => {
                               try {
                                 const linkData = await storage.createSurveyLink(survey.id);
-                                navigator.clipboard.writeText(linkData.url);
-                                toast.success('Survey link copied to clipboard!');
+                                if (linkData.shortUrl) {
+                                  navigator.clipboard.writeText(linkData.shortUrl);
+                                  toast.success('Short link copied!');
+                                } else {
+                                  navigator.clipboard.writeText(linkData.url);
+                                  toast.success('Link copied!');
+                                }
                               } catch (error) {
                                 toast.error('Failed to create survey link. Please try again.');
                               }
