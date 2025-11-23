@@ -5,7 +5,7 @@
 
 export async function copyToClipboard(text: string): Promise<boolean> {
   // Try modern Clipboard API first (works on most modern browsers)
-  if (navigator.clipboard && navigator.clipboard.writeText) {
+  if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
     try {
       await navigator.clipboard.writeText(text);
       return true;
@@ -16,23 +16,34 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 
   // Fallback method for older browsers and mobile devices
+  // This method works better on mobile browsers
   try {
     // Create a temporary textarea element
     const textArea = document.createElement('textarea');
     textArea.value = text;
+    
+    // Make it visible but off-screen for better mobile compatibility
     textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.width = '2em';
+    textArea.style.height = '2em';
+    textArea.style.padding = '0';
+    textArea.style.border = 'none';
+    textArea.style.outline = 'none';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
     textArea.style.opacity = '0';
     textArea.setAttribute('readonly', '');
+    textArea.setAttribute('aria-hidden', 'true');
+    
     document.body.appendChild(textArea);
 
-    // Select and copy
-    textArea.focus();
-    textArea.select();
-    
-    // For iOS Safari
-    if (navigator.userAgent.match(/ipad|iphone/i)) {
+    // For mobile devices, we need to make it editable temporarily
+    if (navigator.userAgent.match(/ipad|iphone|android/i)) {
+      textArea.contentEditable = 'true';
+      textArea.readOnly = false;
+      
       const range = document.createRange();
       range.selectNodeContents(textArea);
       const selection = window.getSelection();
@@ -40,10 +51,21 @@ export async function copyToClipboard(text: string): Promise<boolean> {
         selection.removeAllRanges();
         selection.addRange(range);
       }
-      textArea.setSelectionRange(0, 999999);
+      textArea.setSelectionRange(0, text.length);
+    } else {
+      textArea.select();
+      textArea.setSelectionRange(0, text.length);
     }
 
-    const successful = document.execCommand('copy');
+    // Try to copy
+    let successful = false;
+    try {
+      successful = document.execCommand('copy');
+    } catch (execErr) {
+      console.warn('execCommand copy failed:', execErr);
+    }
+
+    // Clean up
     document.body.removeChild(textArea);
     
     return successful;

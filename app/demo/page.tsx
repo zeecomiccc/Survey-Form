@@ -437,13 +437,17 @@ export default function TableViewDemo() {
                               try {
                                 const linkData = await storage.createSurveyLink(survey.id);
                                 const linkToCopy = linkData.shortUrl || linkData.url;
-                                const { copyToClipboard } = await import('@/lib/clipboard');
-                                const success = await copyToClipboard(linkToCopy);
-                                if (success) {
-                                  toast.success(linkData.shortUrl ? 'Short link copied!' : 'Link copied!');
-                                } else {
-                                  toast.info('Please select and copy the link manually');
-                                }
+                                const { copyToClipboardWithFallback } = await import('@/lib/clipboard');
+                                
+                                await copyToClipboardWithFallback(
+                                  linkToCopy,
+                                  () => {
+                                    toast.success(linkData.shortUrl ? 'Short link copied!' : 'Link copied!');
+                                  },
+                                  () => {
+                                    // Fallback UI is already shown
+                                  }
+                                );
                               } catch (error) {
                                 toast.error('Failed to create survey link. Please try again.');
                               }
