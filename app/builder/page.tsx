@@ -26,7 +26,7 @@ import { Question, Survey, QuestionType } from '@/types/survey';
 import { storage } from '@/lib/storage';
 import QuestionEditor from '@/components/QuestionEditor';
 import { cleanQuestionTitle } from '@/lib/utils';
-import { surveyTemplates } from '@/lib/surveyTemplates';
+import { surveyTemplates as defaultTemplates } from '@/lib/surveyTemplates';
 import { useToastContext } from '@/contexts/ToastContext';
 import { useModal } from '@/hooks/useModal';
 import Modal from '@/components/Modal';
@@ -141,6 +141,7 @@ function BuilderContent() {
   const [collapsedQuestions, setCollapsedQuestions] = useState<Set<string>>(new Set());
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showTemplateSelector, setShowTemplateSelector] = useState(showTemplates);
+  const [availableTemplates, setAvailableTemplates] = useState(defaultTemplates);
   const toast = useToastContext();
   const modalHook = useModal();
 
@@ -152,6 +153,20 @@ function BuilderContent() {
         if (authResponse.ok) {
           const authData = await authResponse.json();
           setCurrentUser(authData.user);
+          
+          // Load templates from API (includes database templates)
+          try {
+            const templatesResponse = await fetch('/api/templates', {
+              credentials: 'include',
+            });
+            if (templatesResponse.ok) {
+              const templates = await templatesResponse.json();
+              setAvailableTemplates(templates);
+            }
+          } catch (error) {
+            console.error('Error loading templates:', error);
+            // Fall back to default templates
+          }
         }
       } catch (error) {
         console.error('Auth error:', error);
@@ -181,7 +196,7 @@ function BuilderContent() {
   };
 
   const loadTemplate = (templateId: string) => {
-    const template = surveyTemplates.find(t => t.id === templateId);
+    const template = availableTemplates.find((t: any) => t.id === templateId);
     if (template) {
       setTitle(template.survey.title);
       setDescription(template.survey.description || '');
@@ -204,25 +219,39 @@ function BuilderContent() {
   };
 
   // Template Selector Component
-  const TemplateSelector = () => (
-    <div className="fixed inset-0 z-[10001] bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+  const TemplateSelector = () => {
+    const handleClose = () => {
+      setShowTemplateSelector(false);
+      if (!surveyId) {
+        router.push('/'); // Redirect to home page when closing without selecting
+      }
+    };
+
+    return (
+      <div 
+        className="fixed inset-0 z-[10001] bg-black bg-opacity-50 flex items-center justify-center p-4"
+        onClick={(e) => {
+          // Close when clicking on backdrop (not the modal content)
+          if (e.target === e.currentTarget) {
+            handleClose();
+          }
+        }}
+      >
+        <div 
+          className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6"
+          onClick={(e) => e.stopPropagation()} // Prevent backdrop click when clicking inside modal
+        >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Choose a Survey Template</h2>
           <button
-            onClick={() => {
-              setShowTemplateSelector(false);
-              if (!surveyId) {
-                router.push('/builder');
-              }
-            }}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600"
           >
             <X size={24} />
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {surveyTemplates.map((template) => (
+          {availableTemplates.map((template: any) => (
             <button
               key={template.id}
               onClick={() => loadTemplate(template.id)}
@@ -239,20 +268,16 @@ function BuilderContent() {
         </div>
         <div className="mt-6 pt-6 border-t border-gray-200 text-center">
           <button
-            onClick={() => {
-              setShowTemplateSelector(false);
-              if (!surveyId) {
-                router.push('/builder');
-              }
-            }}
+            onClick={handleClose}
             className="text-primary-600 hover:text-primary-700 font-medium"
           >
-            Start from scratch instead
+            Cancel
           </button>
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const addQuestion = () => {
     const newQuestion: Question = {

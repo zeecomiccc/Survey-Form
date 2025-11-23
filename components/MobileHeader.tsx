@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, Users, LogOut, ArrowLeft } from 'lucide-react';
+import { Menu, X, Users, LogOut, ArrowLeft, FileText } from 'lucide-react';
 import CompanyLogo from './CompanyLogo';
 
 interface MobileHeaderProps {
@@ -49,14 +49,24 @@ export default function MobileHeader({
             <div className="hidden md:flex items-center gap-3 lg:gap-4">
               <span className="text-gray-700 text-sm">Welcome, {currentUser.name}</span>
               {currentUser.role === 'admin' && (
-                <Link
-                  href="/users"
-                  className="flex items-center gap-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Users size={18} />
-                  Manage Users
-                </Link>
+                <>
+                  <Link
+                    href="/users"
+                    className="flex items-center gap-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Users size={18} />
+                    Manage Users
+                  </Link>
+                  <Link
+                    href="/templates"
+                    className="flex items-center gap-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <FileText size={18} />
+                    Templates
+                  </Link>
+                </>
               )}
               <button
                 onClick={onLogout}
@@ -88,14 +98,24 @@ export default function MobileHeader({
               Welcome, {currentUser.name}
             </div>
             {currentUser.role === 'admin' && (
-              <Link
-                href="/users"
-                className="flex items-center gap-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Users size={18} />
-                Manage Users
-              </Link>
+              <>
+                <Link
+                  href="/users"
+                  className="flex items-center gap-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Users size={18} />
+                  Manage Users
+                </Link>
+                <Link
+                  href="/templates"
+                  className="flex items-center gap-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <FileText size={18} />
+                  Templates
+                </Link>
+              </>
             )}
             <button
               onClick={() => {

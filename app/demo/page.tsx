@@ -436,12 +436,13 @@ export default function TableViewDemo() {
                             onClick={async () => {
                               try {
                                 const linkData = await storage.createSurveyLink(survey.id);
-                                if (linkData.shortUrl) {
-                                  navigator.clipboard.writeText(linkData.shortUrl);
-                                  toast.success('Short link copied!');
+                                const linkToCopy = linkData.shortUrl || linkData.url;
+                                const { copyToClipboard } = await import('@/lib/clipboard');
+                                const success = await copyToClipboard(linkToCopy);
+                                if (success) {
+                                  toast.success(linkData.shortUrl ? 'Short link copied!' : 'Link copied!');
                                 } else {
-                                  navigator.clipboard.writeText(linkData.url);
-                                  toast.success('Link copied!');
+                                  toast.info('Please select and copy the link manually');
                                 }
                               } catch (error) {
                                 toast.error('Failed to create survey link. Please try again.');
