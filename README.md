@@ -1,98 +1,55 @@
 # Survey Platform
 
-A modern, full-featured survey application built with Next.js, TypeScript, and MySQL. Create, distribute, and analyze surveys with ease.
+A modern, full-featured survey application built with Next.js, TypeScript, and MySQL.
 
-## 👤 Author
+**Author:** Naveed Arif | Global Outreach | naveed@globaloutreach.co
 
-**Naveed Arif**  
-Global Outreach  
-Email: naveed@globaloutreach.co
+## Features
 
-## 🚀 Features
+- Survey creation with multiple question types
+- Survey templates (admin-manageable)
+- Short links for easy sharing
+- Analytics dashboard with charts
+- Real-time response updates
+- Export to Excel and PDF
+- Mobile-responsive design
+- User management with roles
+- Email notifications
 
-### Survey Management
-- **Survey Creation**: Build surveys with multiple question types (text, multiple-choice, single-choice, rating, yes/no, date)
-- **Survey Templates**: Pre-built templates for common survey types (Customer Feedback, NPS, Event Feedback, Product Satisfaction, Employee Satisfaction)
-- **Survey Distribution**: Generate unique, expiring survey links (7-day expiration)
-- **One Submission Per Link**: Prevent duplicate submissions with unique link tokens
-- **Soft Delete**: Surveys are soft-deleted (preserved in database) for data recovery
-- **Search & Filter**: Search surveys by title/description and sort by date, title, or response count
-- **Dual View Modes**: Toggle between Card View and Table View for survey listing
-- **View Preference**: View mode preference automatically saved and restored on reload
-
-### Analytics & Reports
-- **Analytics Dashboard**: Visual charts and statistics for survey responses
-- **Chart Customization**: Multiple chart types (Pie, Doughnut, Column, Bar, Area, Line, Gauge) with customizable color palettes and 3D effects
-- **Real-time Updates**: Auto-polling for new responses (toggle on/off) with notifications
-- **Export to Excel**: Download comprehensive Excel reports with calculated statistics, percentages, and multiple sheets
-- **Export to PDF**: Export analytics with charts as PDF documents using jsPDF and html2canvas
-
-### User Experience
-- **Modern UI Components**: Toast notifications and Modal dialogs replace browser alerts/confirms
-- **Better Error Handling**: User-friendly error messages with toast notifications
-- **Responsive Design**: Fully responsive design that works seamlessly on desktop and mobile devices
-- **Mobile Menu**: Hamburger menu for mobile devices with smooth transitions
-- **Drag & Drop**: Reorder questions easily in the survey builder
-- **Progress Tracking**: One question at a time with progress indicator
-- **Loading States**: Proper loading indicators throughout the application
-
-### User Management
-- **User Management**: Admin and user roles with proper access control
-- **Email Notifications**: Receive email alerts when responses are submitted
-
-## 📋 Prerequisites
-
-Before you begin, ensure you have the following installed:
+## Prerequisites
 
 - **Node.js** 18.x or higher
 - **MySQL** 8.0 or higher
-- **npm** or **yarn** package manager
+- **npm** package manager
 
-## 🛠️ Installation
+## Quick Setup
 
-### 1. Clone the Repository
-
-```bash
-git clone <your-repository-url>
-cd Survey
-```
-
-### 2. Install Dependencies
+### 1. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Set Up Environment Variables
+### 2. Environment Configuration
 
-Create a `.env.local` file in the root directory:
-
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` with your configuration:
+Create `.env.local` file:
 
 ```env
-# Application Configuration
-# App name displayed throughout the application
+# App Configuration
 NEXT_PUBLIC_APP_NAME=Survey Platform
-NEXT_PUBLIC_APP_DESCRIPTION=A modern survey platform for creating, sharing, and analyzing surveys
-
-# Next.js Configuration
+NEXT_PUBLIC_APP_DESCRIPTION=A modern survey platform
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# Database Configuration
+# Database
 DB_HOST=localhost
-DB_USER=your_database_user
-DB_PASSWORD=your_database_password
+DB_USER=root
+DB_PASSWORD=your_password
 DB_NAME=survey_app
 
-# JWT Secret (IMPORTANT: Generate a strong secret for production!)
-# Generate with: openssl rand -base64 32
+# JWT Secret (generate: openssl rand -base64 32)
 JWT_SECRET=your-strong-random-secret-here
 
-# SMTP Configuration (Optional - for email notifications)
+# SMTP (Optional)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -103,290 +60,395 @@ SMTP_PASSWORD=your-app-password
 NODE_ENV=production
 ```
 
-### 4. Set Up Database
-
-#### Option A: Using the Setup Script (Recommended)
+### 3. Database Setup
 
 ```bash
+# Create database and tables
 npm run setup-db
+
+# Create admin user
+npm run create-admin your-email@example.com your-password Admin Name
+
+# Run migrations
+npm run migrate-templates
 ```
 
-This will create the database and all required tables.
+### 4. Run Application
 
-#### Option B: Manual Setup
-
-1. Create a MySQL database:
-```sql
-CREATE DATABASE survey_app;
-```
-
-2. Import the schema:
-```bash
-mysql -u your_user -p survey_app < database/schema.sql
-```
-
-Or use the dump file:
-```bash
-mysql -u your_user -p survey_app < database/dump.sql
-```
-
-### 5. Create Admin User
-
-```bash
-npm run create-admin
-```
-
-Or manually:
-```bash
-node scripts/create-admin.js
-```
-
-You'll be prompted to enter:
-- Email
-- Password
-- Name
-
-## 🚀 Running the Application
-
-### Development Mode
-
+**Development:**
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:3000`
-
-### Production Build
-
+**Production:**
 ```bash
 npm run build
 npm start
 ```
 
-## 📁 Project Structure
+## Deployment
 
-```
-Survey/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   │   ├── auth/         # Authentication endpoints
-│   │   ├── surveys/      # Survey CRUD operations
-│   │   ├── responses/    # Response handling
-│   │   └── users/        # User management
-│   ├── analytics/        # Analytics dashboard
-│   ├── builder/          # Survey builder
-│   ├── demo/             # Table view demo page
-│   ├── login/            # Login page
-│   ├── survey/           # Public survey view
-│   └── users/            # User management page
-├── components/            # React components
-│   ├── CompanyLogo.tsx   # Company logo component (with size options)
-│   ├── MobileHeader.tsx  # Responsive header with mobile menu
-│   ├── Modal.tsx         # Modal dialog component
-│   ├── Toast.tsx         # Toast notification component
-│   └── ...               # Other components
-├── contexts/             # React contexts
-│   └── ToastContext.tsx  # Toast notification context
-├── hooks/                # Custom React hooks
-│   ├── useModal.ts       # Modal hook
-│   └── useToast.ts       # Toast hook
-├── database/             # Database schema and dumps
-│   ├── schema.sql        # Database schema
-│   └── dump.sql          # Complete database dump
-├── lib/                  # Utility libraries
-│   ├── auth.ts          # Authentication helpers
-│   ├── db.ts            # Database connection pool
-│   ├── email.ts         # Email service
-│   ├── storage.ts       # Data access layer
-│   ├── surveyTemplates.ts # Survey template definitions
-│   └── utils.ts         # Utility functions
-├── scripts/              # Setup and migration scripts
-├── types/                # TypeScript type definitions
-└── public/               # Static assets
-    └── logo.png          # Company logo
+### Windows Server
+
+#### 1. Install Prerequisites
+
+- Install Node.js from [nodejs.org](https://nodejs.org/)
+- Install MySQL from [mysql.com](https://dev.mysql.com/downloads/)
+- Install Git (optional)
+
+#### 2. Setup Project
+
+```powershell
+# Clone or copy project files
+cd C:\path\to\Survey
+
+# Install dependencies
+npm install
+
+# Create .env.local with production values
+# Edit .env.local and set:
+# - NEXT_PUBLIC_APP_URL=https://your-domain.com
+# - DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+# - JWT_SECRET (generate with: openssl rand -base64 32)
 ```
 
-## 🔐 Security
+#### 3. Database Setup
 
-This application includes several security features:
+```powershell
+# Create database
+mysql -u root -p
+CREATE DATABASE survey_app;
+EXIT;
 
-- ✅ SQL injection protection (parameterized queries)
-- ✅ Password hashing (bcrypt)
-- ✅ JWT authentication
-- ✅ HttpOnly cookies
-- ✅ Role-based access control
-- ✅ Input validation
-- ✅ Security headers
+# Import schema
+mysql -u root -p survey_app < database\schema.sql
 
-**⚠️ IMPORTANT**: Before deploying to production, review the [SECURITY.md](SECURITY.md) checklist.
+# Create admin user
+npm run create-admin admin@example.com password123 Admin User
 
-## 📧 Email Notifications Setup
+# Run migrations
+npm run migrate-templates
+```
 
-To enable email notifications:
+#### 4. Build and Start
 
-1. Configure SMTP settings in `.env.local`
-2. For Gmail:
-   - Enable 2-Step Verification
-   - Generate an App Password
-   - Use the app password in `SMTP_PASSWORD`
+```powershell
+# Build for production
+npm run build
 
-See [README-EMAIL.md](README-EMAIL.md) for detailed instructions.
+# Start application
+npm start
+```
 
-## 🗄️ Database Migrations
+#### 5. Run as Windows Service (Optional)
 
-### Add Email Notifications Column
+Use **PM2** or **NSSM** (Non-Sucking Service Manager):
 
-If you're upgrading from an older version:
+**Using PM2:**
+```powershell
+npm install -g pm2
+pm2 start npm --name "survey-app" -- start
+pm2 save
+pm2 startup
+```
+
+**Using NSSM:**
+1. Download NSSM from [nssm.cc](https://nssm.cc/download)
+2. Install service: `nssm install SurveyApp`
+3. Set path: `C:\path\to\node.exe`
+4. Set arguments: `C:\path\to\Survey\node_modules\.bin\next start`
+5. Set working directory: `C:\path\to\Survey`
+6. Start service: `nssm start SurveyApp`
+
+#### 6. Configure IIS (Optional)
+
+If using IIS as reverse proxy:
+
+1. Install **URL Rewrite** and **Application Request Routing** modules
+2. Create reverse proxy rule pointing to `http://localhost:3000`
+3. Configure SSL certificate
+
+---
+
+### Ubuntu Server
+
+#### 1. Install Prerequisites
 
 ```bash
-npm run migrate-email
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 18.x
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Install MySQL
+sudo apt install -y mysql-server
+
+# Install PM2 (process manager)
+sudo npm install -g pm2
+
+# Install Apache (if using as reverse proxy)
+sudo apt install -y apache2
 ```
 
-### Add Login Attempts Table (Brute Force Protection)
-
-For brute force protection:
+#### 2. Setup Project
 
 ```bash
-npm run migrate-login-attempts
+# Navigate to web directory
+cd /var/www
+
+# Clone or upload project files
+sudo git clone <your-repo-url> Survey
+# OR upload files via SCP/SFTP
+
+# Set ownership
+sudo chown -R $USER:$USER /var/www/Survey
+cd /var/www/Survey
+
+# Install dependencies
+npm install --production
+
+# Create .env.local
+cp env.example.txt .env.local
+nano .env.local
+# Edit with production values:
+# - NEXT_PUBLIC_APP_URL=https://your-domain.com
+# - DB_HOST=localhost
+# - DB_USER, DB_PASSWORD, DB_NAME
+# - JWT_SECRET (generate: openssl rand -base64 32)
 ```
 
-### Add Soft Delete Support
-
-To enable soft delete for surveys (surveys are marked as deleted but preserved in database):
+#### 3. Database Setup
 
 ```bash
-npm run migrate-soft-delete
+# Secure MySQL installation
+sudo mysql_secure_installation
+
+# Create database and user
+sudo mysql -u root -p
 ```
 
-This adds a `deleted_at` column to the surveys table, allowing for data recovery.
+```sql
+CREATE DATABASE survey_app;
+CREATE USER 'survey_user'@'localhost' IDENTIFIED BY 'strong_password';
+GRANT ALL PRIVILEGES ON survey_app.* TO 'survey_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
 
-## 📝 API Endpoints
+```bash
+# Import schema
+mysql -u survey_user -p survey_app < database/schema.sql
 
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - Create new user (admin only)
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/me` - Get current user
+# Create admin user
+npm run create-admin admin@example.com password123 Admin User
 
-### Surveys
-- `GET /api/surveys` - Get all surveys (filtered by user)
-- `POST /api/surveys` - Create new survey
-- `GET /api/surveys/[id]` - Get survey by ID (public)
-- `PUT /api/surveys/[id]` - Update survey
-- `DELETE /api/surveys/[id]` - Delete survey
-- `PUT /api/surveys/[id]/notifications` - Toggle email notifications
+# Run migrations
+npm run migrate-templates
+```
 
-### Responses
-- `GET /api/responses?surveyId=[id]` - Get responses for a survey
-- `POST /api/responses` - Submit survey response (public)
+#### 4. Build Application
 
-### Users (Admin Only)
-- `GET /api/users` - Get all users
-- `DELETE /api/users?id=[id]` - Delete user
-- `PUT /api/users/[id]` - Update user
-- `POST /api/users/[id]/reset-password` - Reset user password
+```bash
+npm run build
+```
 
-## 🧪 Testing
+#### 5. Start with PM2
 
-Currently, manual testing is recommended. Future versions may include automated tests.
+```bash
+# Start application
+pm2 start ecosystem.config.js
 
-## 🐛 Troubleshooting
+# Save PM2 configuration
+pm2 save
 
-### Database Connection Issues
+# Setup PM2 to start on boot
+pm2 startup
+# Follow the displayed command
+```
 
-- Verify database credentials in `.env.local`
-- Ensure MySQL is running
-- Check database user has proper permissions
+#### 6. Configure Apache Reverse Proxy
 
-### Email Not Sending
+```bash
+# Enable required modules
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo a2enmod headers
+sudo a2enmod ssl
 
-- Verify SMTP credentials
-- Check spam folder
-- Ensure SMTP settings are correct
-- See [README-EMAIL.md](README-EMAIL.md) for troubleshooting
+# Create virtual host
+sudo nano /etc/apache2/sites-available/survey.conf
+```
+
+Add configuration:
+
+```apache
+<VirtualHost *:80>
+    ServerName your-domain.com
+    ServerAlias www.your-domain.com
+    
+    ProxyPreserveHost On
+    ProxyRequests Off
+    
+    ProxyPass / http://localhost:3000/
+    ProxyPassReverse / http://localhost:3000/
+    
+    RequestHeader set X-Forwarded-Proto "http"
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName your-domain.com
+    ServerAlias www.your-domain.com
+    
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/your-cert.crt
+    SSLCertificateKeyFile /etc/ssl/private/your-key.key
+    
+    ProxyPreserveHost On
+    ProxyRequests Off
+    
+    ProxyPass / http://localhost:3000/
+    ProxyPassReverse / http://localhost:3000/
+    
+    RequestHeader set X-Forwarded-Proto "https"
+</VirtualHost>
+```
+
+```bash
+# Enable site
+sudo a2ensite survey.conf
+
+# Disable default site (optional)
+sudo a2dissite 000-default.conf
+
+# Test configuration
+sudo apache2ctl configtest
+
+# Restart Apache
+sudo systemctl restart apache2
+```
+
+#### 7. Configure Firewall
+
+```bash
+# Allow HTTP/HTTPS
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Enable firewall
+sudo ufw enable
+```
+
+---
+
+## Files to Upload to Server
+
+**Upload these folders/files:**
+- `app/`, `components/`, `contexts/`, `hooks/`, `lib/`, `types/`, `public/`
+- `package.json`, `package-lock.json`
+- `tsconfig.json`, `next.config.js`, `tailwind.config.js`, `postcss.config.js`
+- `database/`, `scripts/`
+- `ecosystem.config.js` (for PM2)
+
+**DO NOT upload:**
+- `node_modules/` (run `npm install` on server)
+- `.next/` (run `npm run build` on server)
+- `.env.local` (create manually on server)
+- `.git/`, `*.log`, `.DS_Store`
+
+**Quick upload with rsync:**
+```bash
+rsync -avz --exclude 'node_modules' --exclude '.next' --exclude '.env.local' \
+           --exclude '.git' --exclude '*.log' \
+           ./ user@server:/var/www/Survey/
+```
+
+---
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_APP_NAME` | App name displayed in UI | No (default: "Survey Platform") |
+| `NEXT_PUBLIC_APP_DESCRIPTION` | App description | No |
+| `NEXT_PUBLIC_APP_URL` | Full URL of your app | Yes (for production) |
+| `DB_HOST` | MySQL host | Yes |
+| `DB_USER` | MySQL username | Yes |
+| `DB_PASSWORD` | MySQL password | Yes |
+| `DB_NAME` | Database name | Yes |
+| `JWT_SECRET` | Secret for JWT tokens | Yes (generate strong secret) |
+| `SMTP_HOST` | SMTP server | No (for email) |
+| `SMTP_PORT` | SMTP port | No |
+| `SMTP_USER` | SMTP username | No |
+| `SMTP_PASSWORD` | SMTP password | No |
+
+---
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run setup-db` - Setup database schema
+- `npm run create-admin` - Create admin user
+- `npm run migrate-templates` - Create templates table
+- `npm run migrate-email` - Add email notifications column
+- `npm run migrate-soft-delete` - Add soft delete support
+
+---
+
+## Troubleshooting
+
+### Database Connection Error
+- Verify credentials in `.env.local`
+- Check MySQL is running: `sudo systemctl status mysql`
+- Test connection: `mysql -u user -p database`
 
 ### Build Errors
+- Clear cache: `rm -rf .next node_modules`
+- Reinstall: `npm install`
+- Check Node version: `node --version` (should be 18+)
 
-- Clear `.next` folder: `rm -rf .next`
-- Reinstall dependencies: `rm -rf node_modules && npm install`
-- Check Node.js version: `node --version` (should be 18+)
+### Port Already in Use
+```bash
+# Find process using port 3000
+sudo lsof -i :3000
+# Kill process
+sudo kill -9 <PID>
+```
 
-## 📦 Deployment
+### PM2 Not Starting on Boot
+```bash
+# Regenerate startup script
+pm2 unstartup
+pm2 startup
+# Run the displayed command
+```
 
-### Vercel (Recommended)
+---
 
-1. Push code to GitHub
-2. Import project in Vercel
-3. Add environment variables
-4. Deploy
+## Security Checklist
 
-### Other Platforms
+Before production deployment:
 
-1. Build the application: `npm run build`
-2. Set environment variables
-3. Run: `npm start`
-4. Ensure MySQL database is accessible
+- [ ] Change `JWT_SECRET` to strong random value
+- [ ] Use strong database passwords
+- [ ] Enable HTTPS/SSL
+- [ ] Set `NODE_ENV=production`
+- [ ] Configure firewall rules
+- [ ] Use dedicated database user with minimal privileges
+- [ ] Keep dependencies updated
+- [ ] Never commit `.env.local` to version control
 
-**Important**: Set `NODE_ENV=production` in production environment.
+---
 
-## 🤝 Contributing
+## Support
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-## 📄 License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
-## 🆘 Support
-
-For issues and questions:
-- Check the [SECURITY.md](SECURITY.md) for security-related questions
-- Review the troubleshooting section
-- Open an issue on GitHub
-
-## 🔄 Version History
-
-- **v1.1.0** - Enhanced User Experience Update
-  - ✨ Toast notifications and Modal dialogs replace browser alerts/confirms
-  - 🔍 Search and filter functionality for surveys (by title, description, sort by date/title/responses)
-  - 📋 Survey templates system (5 pre-built templates)
-  - 🔄 Real-time polling for analytics page with auto-update toggle
-  - 📊 PDF export with charts using jsPDF and html2canvas
-  - 👁️ Dual view modes (Card View and Table View) with preference saving
-  - 🗑️ Soft delete for surveys (data preserved for recovery)
-  - 📱 Improved mobile responsiveness with hamburger menu
-  - 🎨 Chart customization (multiple types, color palettes, 3D effects)
-  - 📈 Enhanced Excel export with calculated statistics and percentages
-  - 🔧 Better error handling with user-friendly toast messages
-  - ⚙️ Database connection pool optimization
-  - 🎯 Loading states and improved UX throughout
-
-- **v1.0.0** - Initial release
-  - Survey creation and management
-  - User authentication and authorization
-  - Analytics dashboard
-  - Email notifications
-  - Export to Excel
-
-## 📚 Additional Documentation
-
-- [CHANGELOG.md](CHANGELOG.md) - Detailed changelog and version history
-- [SECURITY.md](SECURITY.md) - Security checklist and best practices
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment guide
-- [README-EMAIL.md](README-EMAIL.md) - Email notification setup guide
-- [LOGO-FOOTER-SETUP.md](LOGO-FOOTER-SETUP.md) - Logo and footer configuration guide
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Contributing guidelines
-- [database/schema.sql](database/schema.sql) - Database schema
-- [database/dump.sql](database/dump.sql) - Complete database dump
+For issues or questions:
+- Email: naveed@globaloutreach.co
+- Check logs: `pm2 logs survey-app` (Ubuntu) or check console (Windows)
 
 ---
 
 **Made with ❤️ using Next.js, TypeScript, and MySQL**
-
-## 📧 Contact
-
-For questions, support, or inquiries, please contact:
-
-**Naveed Arif**  
-Global Outreach  
-Email: naveed@globaloutreach.co
