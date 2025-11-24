@@ -6,7 +6,7 @@ const appName = process.env.NEXT_PUBLIC_APP_NAME || 'Survey Platform';
 const appDescription = process.env.NEXT_PUBLIC_APP_DESCRIPTION || 'A modern survey platform for creating, sharing, and analyzing surveys';
 
 export const metadata: Metadata = {
-  title: `${appName} - Create & Analyze Surveys`,
+  title: appName,
   description: appDescription,
 }
 
