@@ -218,93 +218,88 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <MobileHeader currentUser={currentUser} onLogout={handleLogout} />
 
-      <div className="container mx-auto px-4 py-6 md:py-12">
-        <div className="text-center mb-6 md:mb-8">
-          <p className="text-lg md:text-xl text-gray-600 mb-4 md:mb-6 px-2">
-            Create, share, and analyze surveys with ease
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
-            <Link
-              href="/builder"
-              className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors shadow-lg text-sm md:text-base"
-            >
-              <Plus size={18} className="md:w-5 md:h-5" />
-              Create New Survey
-            </Link>
-            <Link
-              href="/builder?templates=true"
-              className="inline-flex items-center gap-2 bg-purple-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors shadow-lg text-sm md:text-base"
-            >
-              📋 Use Template
-            </Link>
-          </div>
-        </div>
-
-        {/* Search, Filter, and View Toggle */}
-        {allSurveys.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              {/* Search */}
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search surveys by title or description..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm md:text-base"
-                />
-              </div>
-
-              {/* View Toggle - Single Button */}
-              <button
-                onClick={() => setViewMode(viewMode === 'card' ? 'table' : 'card')}
-                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium text-gray-700 shadow-sm"
-                title={`Switch to ${viewMode === 'card' ? 'Table' : 'Card'} View`}
-              >
-                {viewMode === 'card' ? (
-                  <>
-                    <TableIcon size={18} />
-                    <span className="hidden sm:inline">Table View</span>
-                    <span className="sm:hidden">Table</span>
-                  </>
-                ) : (
-                  <>
-                    <Grid size={18} />
-                    <span className="hidden sm:inline">Card View</span>
-                    <span className="sm:hidden">Cards</span>
-                  </>
-                )}
-              </button>
-
-              {/* Sort */}
-              <div className="flex gap-2">
-                <select
-                  value={filterSort}
-                  onChange={(e) => setFilterSort(e.target.value as 'date' | 'title' | 'responses')}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm md:text-base"
-                >
-                  <option value="date">Sort by Date</option>
-                  <option value="title">Sort by Title</option>
-                  <option value="responses">Sort by Responses</option>
-                </select>
-                <button
-                  onClick={() => setFilterOrder(filterOrder === 'asc' ? 'desc' : 'asc')}
-                  className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  title={filterOrder === 'asc' ? 'Ascending' : 'Descending'}
-                >
-                  <Filter size={18} className={filterOrder === 'asc' ? 'rotate-180' : ''} />
-                </button>
-              </div>
+      <div className="container mx-auto px-4 pt-3 pb-6 md:pt-4 md:pb-8">
+        {/* Search, Filter, and Action Buttons */}
+        <div className="bg-white rounded-xl shadow-md p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search surveys by title or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+              />
             </div>
-            
-            {searchQuery && (
-              <div className="mt-3 text-sm text-gray-600">
-                Found {surveys.length} survey{surveys.length !== 1 ? 's' : ''}
-              </div>
-            )}
+
+            {/* Action Buttons - Compact */}
+            <div className="flex items-center gap-2">
+              <Link
+                href="/builder"
+                className="inline-flex items-center gap-1.5 bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium"
+                title="Create New Survey"
+              >
+                <Plus size={16} />
+                <span className="hidden sm:inline">New</span>
+              </Link>
+              <Link
+                href="/builder?templates=true"
+                className="inline-flex items-center gap-1.5 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-sm text-sm font-medium"
+                title="Use Template"
+              >
+                <FileText size={16} />
+                <span className="hidden sm:inline">Template</span>
+              </Link>
+            </div>
+
+            {/* View Toggle */}
+            <button
+              onClick={() => setViewMode(viewMode === 'card' ? 'table' : 'card')}
+              className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium text-gray-700 shadow-sm"
+              title={`Switch to ${viewMode === 'card' ? 'Table' : 'Card'} View`}
+            >
+              {viewMode === 'card' ? (
+                <>
+                  <TableIcon size={16} />
+                  <span className="hidden sm:inline">Table</span>
+                </>
+              ) : (
+                <>
+                  <Grid size={16} />
+                  <span className="hidden sm:inline">Cards</span>
+                </>
+              )}
+            </button>
+
+            {/* Sort */}
+            <div className="flex gap-2">
+              <select
+                value={filterSort}
+                onChange={(e) => setFilterSort(e.target.value as 'date' | 'title' | 'responses')}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+              >
+                <option value="date">Date</option>
+                <option value="title">Title</option>
+                <option value="responses">Responses</option>
+              </select>
+              <button
+                onClick={() => setFilterOrder(filterOrder === 'asc' ? 'desc' : 'asc')}
+                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                title={filterOrder === 'asc' ? 'Ascending' : 'Descending'}
+              >
+                <Filter size={16} className={filterOrder === 'asc' ? 'rotate-180' : ''} />
+              </button>
+            </div>
           </div>
-        )}
+          
+          {searchQuery && (
+            <div className="mt-3 text-sm text-gray-600">
+              Found {surveys.length} survey{surveys.length !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
 
         <Modal
           isOpen={modal.isOpen}
