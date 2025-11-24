@@ -37,11 +37,13 @@ CREATE TABLE IF NOT EXISTS surveys (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     email_notifications_enabled BOOLEAN DEFAULT FALSE,
+    published BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
-    INDEX idx_created_at (created_at)
+    INDEX idx_created_at (created_at),
+    INDEX idx_published (published)
 );
 
 -- Questions table

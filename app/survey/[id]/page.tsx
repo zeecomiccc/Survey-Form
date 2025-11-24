@@ -31,6 +31,13 @@ function SurveyPageContent() {
       setLoading(true);
       try {
         const foundSurvey = await storage.getSurvey(surveyId);
+        
+        // Check if survey is published (if accessed via link)
+        if (linkToken && foundSurvey && !foundSurvey.published) {
+          toast.error('This survey is not currently published.');
+          router.push('/');
+          return;
+        }
         if (!foundSurvey) {
           // Don't redirect to home, just show error
           setLoading(false);

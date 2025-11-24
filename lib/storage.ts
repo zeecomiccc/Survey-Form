@@ -95,6 +95,24 @@ export const storage = {
     }
   },
 
+  async togglePublish(surveyId: string, published: boolean): Promise<void> {
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}/publish`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update publish status');
+      }
+    } catch (error) {
+      console.error('Error toggling publish status:', error);
+      throw error;
+    }
+  },
+
   async duplicateSurvey(originalSurvey: Survey): Promise<void> {
     try {
       // Create a new survey with new IDs

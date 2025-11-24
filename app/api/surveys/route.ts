@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     
     // Admin sees all surveys, users see only their own
     // Exclude soft-deleted surveys (deleted_at IS NULL)
-    let query = 'SELECT id, user_id as userId, title, description, email_notifications_enabled as emailNotificationsEnabled, created_at as createdAt, updated_at as updatedAt FROM surveys WHERE deleted_at IS NULL';
+    let query = 'SELECT id, user_id as userId, title, description, email_notifications_enabled as emailNotificationsEnabled, published, created_at as createdAt, updated_at as updatedAt FROM surveys WHERE deleted_at IS NULL';
     let params: any[] = [];
     
     if (currentUser.role !== 'admin') {

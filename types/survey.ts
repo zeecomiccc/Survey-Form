@@ -32,6 +32,7 @@ export interface Survey {
   createdAt: string;
   updatedAt: string;
   emailNotificationsEnabled?: boolean;
+  published?: boolean;
 }
 
 export interface SurveyResponse {

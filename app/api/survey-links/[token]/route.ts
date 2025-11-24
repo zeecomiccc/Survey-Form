@@ -10,11 +10,12 @@ export async function GET(
     const pool = getPool();
     const token = params.token;
 
-    // Find link by token
+    // Find link by token and check if survey is published
     const [links] = await pool.execute(
-      `SELECT survey_id as surveyId, expires_at as expiresAt
-       FROM survey_links 
-       WHERE token = ?`,
+      `SELECT sl.survey_id as surveyId, sl.expires_at as expiresAt, s.published
+       FROM survey_links sl
+       INNER JOIN surveys s ON sl.survey_id = s.id
+       WHERE sl.token = ? AND s.deleted_at IS NULL`,
       [token]
     ) as any[];
 
@@ -27,6 +28,11 @@ export async function GET(
     // Check if expired
     if (new Date(link.expiresAt) < new Date()) {
       return NextResponse.json({ error: 'Link has expired' }, { status: 410 });
+    }
+
+    // Check if survey is published
+    if (!link.published) {
+      return NextResponse.json({ error: 'This survey is not currently published' }, { status: 403 });
     }
 
     return NextResponse.json({ surveyId: link.surveyId });

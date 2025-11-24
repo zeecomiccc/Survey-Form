@@ -16,8 +16,9 @@ export async function GET(
 
     // Get survey (public access - anyone with the link can view)
     // Exclude soft-deleted surveys
+    // Check if survey is published (for link access)
     const [surveys] = await pool.execute(
-      'SELECT id, user_id as userId, title, description, email_notifications_enabled as emailNotificationsEnabled, created_at as createdAt, updated_at as updatedAt FROM surveys WHERE id = ? AND deleted_at IS NULL',
+      'SELECT id, user_id as userId, title, description, email_notifications_enabled as emailNotificationsEnabled, published, created_at as createdAt, updated_at as updatedAt FROM surveys WHERE id = ? AND deleted_at IS NULL',
       [surveyId]
     ) as any[];
 

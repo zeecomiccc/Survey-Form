@@ -20,6 +20,7 @@
     "migrate-soft-delete": "node scripts/migrate-add-soft-delete.js",
     "migrate-short-code": "node scripts/migrate-add-short-code.js",
     "migrate-templates": "node scripts/create-templates-table.js",
+    "migrate-published": "node scripts/migrate-add-published.js",
     "fix-titles": "node scripts/fix-question-titles.js"
   },
   "dependencies": {

@@ -16,11 +16,12 @@ export async function GET(
 
     const pool = getPool();
 
-    // Find the link by short code
+    // Find the link by short code and check if survey is published
     const [links] = await pool.execute(
-      `SELECT id, survey_id, token, expires_at as expiresAt
-       FROM survey_links 
-       WHERE short_code = ? AND expires_at > NOW()`,
+      `SELECT sl.id, sl.survey_id, sl.token, sl.expires_at as expiresAt, s.published
+       FROM survey_links sl
+       INNER JOIN surveys s ON sl.survey_id = s.id
+       WHERE sl.short_code = ? AND sl.expires_at > NOW() AND s.deleted_at IS NULL`,
       [code]
     ) as any[];
 
@@ -29,6 +30,11 @@ export async function GET(
     }
 
     const link = links[0];
+
+    // Check if survey is published
+    if (!link.published) {
+      return NextResponse.json({ error: 'This survey is not currently published' }, { status: 403 });
+    }
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // Return the full survey link URL

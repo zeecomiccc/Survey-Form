@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, BarChart3, FileText, Edit, Trash2, Copy, Mail, Search, Filter, Table as TableIcon, Grid, Eye, Users, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, BarChart3, FileText, Edit, Trash2, Copy, Mail, Search, Filter, Table as TableIcon, Grid, Eye, Users, ArrowUpDown, ArrowUp, ArrowDown, Globe } from 'lucide-react';
 import { storage } from '@/lib/storage';
 import { Survey } from '@/types/survey';
 import MobileHeader from '@/components/MobileHeader';
@@ -166,6 +166,17 @@ export default function Home() {
       toast.success('Survey duplicated successfully!');
     } catch (error) {
       toast.error('Failed to duplicate survey. Please try again.');
+      console.error(error);
+    }
+  };
+
+  const handleTogglePublish = async (surveyId: string, published: boolean) => {
+    try {
+      await storage.togglePublish(surveyId, published);
+      await refreshSurveys();
+      toast.success(published ? 'Survey published successfully' : 'Survey unpublished successfully');
+    } catch (error) {
+      toast.error('Failed to update publish status. Please try again.');
       console.error(error);
     }
   };
@@ -385,6 +396,19 @@ export default function Home() {
                   </button>
                 </div>
                 <div className="mt-2.5 pt-2.5 border-t border-gray-200 space-y-2">
+                  {/* Publish/Unpublish Button */}
+                  <button
+                    onClick={() => handleTogglePublish(survey.id, !survey.published)}
+                    className={`w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      survey.published
+                        ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                    title={survey.published ? 'Unpublish survey' : 'Publish survey'}
+                  >
+                    <Globe size={14} className={survey.published ? 'text-green-600' : 'text-gray-400'} />
+                    <span>{survey.published ? 'Published' : 'Unpublished'}</span>
+                  </button>
                   <button
                     onClick={async () => {
                       try {
@@ -579,7 +603,19 @@ export default function Home() {
                           </button>
                         </div>
                         
-                        <div className="mt-2 flex items-center justify-center gap-2">
+                        <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
+                          <button
+                            onClick={() => handleTogglePublish(survey.id, !survey.published)}
+                            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                              survey.published
+                                ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}
+                            title={survey.published ? 'Unpublish survey' : 'Publish survey'}
+                          >
+                            <Globe size={14} className={survey.published ? 'text-green-600' : 'text-gray-400'} />
+                            <span className="hidden sm:inline">{survey.published ? 'Published' : 'Unpublished'}</span>
+                          </button>
                           <button
                             onClick={async () => {
                               try {
