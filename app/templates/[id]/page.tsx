@@ -2,7 +2,24 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Plus, Save, Trash2, ArrowLeft, X } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Plus, Save, Trash2, ArrowLeft, X, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import MobileHeader from '@/components/MobileHeader';
 import { useToastContext } from '@/contexts/ToastContext';
 import { useModal } from '@/hooks/useModal';
@@ -10,6 +27,107 @@ import Modal from '@/components/Modal';
 import { v4 as uuidv4 } from 'uuid';
 import { Question, QuestionType } from '@/types/survey';
 import QuestionEditor from '@/components/QuestionEditor';
+import { cleanQuestionTitle } from '@/lib/utils';
+
+function SortableQuestion({
+  question,
+  index,
+  onUpdate,
+  onDelete,
+  isCollapsed,
+  onToggleCollapse,
+}: {
+  question: Question;
+  index: number;
+  onUpdate: (question: Question) => void;
+  onDelete: () => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: question.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative" id={`question-${question.id}`}>
+      <div className="bg-white rounded-lg border-2 border-gray-200 p-6 mb-4 hover:border-primary-300 transition-colors relative">
+        {/* Expand/Collapse button in top left corner */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleCollapse();
+          }}
+          className="absolute top-4 left-4 p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors z-10"
+          title={isCollapsed ? 'Expand question' : 'Collapse question'}
+        >
+          {isCollapsed ? (
+            <ChevronDown size={20} />
+          ) : (
+            <ChevronUp size={20} />
+          )}
+        </button>
+        
+        {/* Delete button in top right corner */}
+        <button
+          onClick={onDelete}
+          className="absolute top-4 right-4 text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors z-10"
+          title="Delete question"
+        >
+          <Trash2 size={20} />
+        </button>
+        
+        {isCollapsed ? (
+          <div className="flex items-start gap-4 pr-20 pl-12">
+            <div
+              {...attributes}
+              {...listeners}
+              className="mt-2 text-gray-400 cursor-grab active:cursor-grabbing hover:text-primary-600 transition-colors p-1 rounded hover:bg-gray-100"
+              title="Drag to reorder"
+            >
+              <GripVertical size={20} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {cleanQuestionTitle(question.title) || 'Untitled Question'}
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">Click arrow to expand and edit</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-4 mb-4 pr-20 pl-12">
+            <div
+              {...attributes}
+              {...listeners}
+              className="mt-2 text-gray-400 cursor-grab active:cursor-grabbing hover:text-primary-600 transition-colors p-1 rounded hover:bg-gray-100"
+              title="Drag to reorder"
+            >
+              <GripVertical size={20} />
+            </div>
+            <div className="flex-1">
+              <QuestionEditor
+                question={question}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function TemplateEditorContent() {
   const router = useRouter();
@@ -31,6 +149,7 @@ function TemplateEditorContent() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [collapsedQuestions, setCollapsedQuestions] = useState<Set<string>>(new Set());
   const toast = useToastContext();
   const modal = useModal();
 
@@ -217,6 +336,25 @@ function TemplateEditorContent() {
         questions: [...templateData.survey.questions, newQuestion],
       },
     });
+
+    // Collapse all other questions and expand the new one
+    const newCollapsed = new Set<string>();
+    // Add all existing question IDs to collapsed set (except the new one)
+    templateData.survey.questions.forEach(q => newCollapsed.add(q.id));
+    setCollapsedQuestions(newCollapsed);
+
+    // Scroll to the new question after a short delay to allow DOM update
+    setTimeout(() => {
+      const element = document.getElementById(`question-${newQuestion.id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Focus on the question title input
+        const titleInput = element.querySelector('input[placeholder="Enter your question"]') as HTMLInputElement;
+        if (titleInput) {
+          titleInput.focus();
+        }
+      }
+    }, 100);
   };
 
   const updateQuestion = (index: number, question: Question) => {
@@ -257,6 +395,33 @@ function TemplateEditorContent() {
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     router.push('/login');
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setTemplateData((prev) => {
+        const questions = prev.survey.questions;
+        const oldIndex = questions.findIndex((q) => q.id === active.id);
+        const newIndex = questions.findIndex((q) => q.id === over.id);
+        const reordered = arrayMove(questions, oldIndex, newIndex);
+        return {
+          ...prev,
+          survey: {
+            ...prev.survey,
+            questions: reordered.map((q, i) => ({ ...q, order: i })),
+          },
+        };
+      });
+    }
   };
 
   if (loading) {
@@ -394,27 +559,36 @@ function TemplateEditorContent() {
                   <p className="mb-4">No questions yet. Click "Add Question" to get started.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {templateData.survey.questions.map((question, index) => (
-                    <div key={question.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Question {index + 1}</span>
-                        <button
-                          onClick={() => deleteQuestion(index)}
-                          className="text-red-600 hover:text-red-700 p-1"
-                          title="Delete Question"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                      <QuestionEditor
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={templateData.survey.questions.map((q) => q.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {templateData.survey.questions.map((question, index) => (
+                      <SortableQuestion
+                        key={question.id}
                         question={question}
-                        onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
+                        index={index}
+                        onUpdate={(q) => updateQuestion(index, q)}
                         onDelete={() => deleteQuestion(index)}
+                        isCollapsed={collapsedQuestions.has(question.id)}
+                        onToggleCollapse={() => {
+                          const newCollapsed = new Set(collapsedQuestions);
+                          if (newCollapsed.has(question.id)) {
+                            newCollapsed.delete(question.id);
+                          } else {
+                            newCollapsed.add(question.id);
+                          }
+                          setCollapsedQuestions(newCollapsed);
+                        }}
                       />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
 
@@ -465,6 +639,18 @@ function TemplateEditorContent() {
         type={modal.modalOptions.type}
         showCancel={modal.modalOptions.showCancel}
       />
+
+      {/* Sticky Floating Action Button - Outside container for better visibility */}
+      {templateData.survey.questions.length > 0 && (
+        <button
+          onClick={addQuestion}
+          className="fixed bottom-8 right-8 bg-primary-600 text-white rounded-full shadow-2xl hover:bg-primary-700 transition-all hover:scale-110 z-[100] flex items-center justify-center w-16 h-16"
+          title="Add New Question"
+          style={{ boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)' }}
+        >
+          <Plus size={32} strokeWidth={3} />
+        </button>
+      )}
     </div>
   );
 }
