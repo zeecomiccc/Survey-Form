@@ -106,7 +106,8 @@ export default function Home() {
       filtered = filtered.filter(
         (survey) =>
           survey.title.toLowerCase().includes(query) ||
-          survey.description?.toLowerCase().includes(query)
+          survey.description?.toLowerCase().includes(query) ||
+          survey.internalName?.toLowerCase().includes(query)
       );
     }
 
@@ -342,6 +343,11 @@ export default function Home() {
                 <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-1.5 line-clamp-2">
                   {survey.title}
                 </h3>
+                {survey.internalName && (
+                  <p className="text-gray-500 mb-1.5 text-xs italic">
+                    📋 {survey.internalName}
+                  </p>
+                )}
                 {survey.description && (
                   <p className="text-gray-600 mb-3 text-xs md:text-sm line-clamp-2">
                     {survey.description}
@@ -531,6 +537,11 @@ export default function Home() {
                           </div>
                           <div>
                             <div className="text-sm font-semibold text-gray-900">{survey.title}</div>
+                            {survey.internalName && (
+                              <div className="text-xs text-gray-500 italic mt-0.5">
+                                📋 {survey.internalName}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>

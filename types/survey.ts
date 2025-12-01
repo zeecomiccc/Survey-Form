@@ -28,6 +28,7 @@ export interface Survey {
   id: string;
   title: string;
   description?: string;
+  internalName?: string; // Internal name for identifying survey purpose (not shown to public)
   questions: Question[];
   createdAt: string;
   updatedAt: string;

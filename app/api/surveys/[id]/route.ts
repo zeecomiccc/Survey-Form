@@ -52,7 +52,7 @@ export async function GET(
         
         if (['multiple-choice', 'single-choice'].includes(question.type)) {
           const [options] = await pool.execute(
-            'SELECT id, label FROM question_options WHERE question_id = ? ORDER BY id ASC',
+            'SELECT id, label FROM question_options WHERE question_id = ? ORDER BY `order` ASC',
             [question.id]
           ) as any[];
           return { ...cleanedQuestion, options };
@@ -133,10 +133,11 @@ export async function PUT(
 
       // Insert options if needed
       if (question.options && question.options.length > 0) {
-        for (const option of question.options) {
+        for (let i = 0; i < question.options.length; i++) {
+          const option = question.options[i];
           await pool.execute(
-            'INSERT INTO question_options (id, question_id, label) VALUES (?, ?, ?)',
-            [option.id, question.id, option.label]
+            'INSERT INTO question_options (id, question_id, label, `order`) VALUES (?, ?, ?, ?)',
+            [option.id, question.id, option.label, i]
           );
         }
       }

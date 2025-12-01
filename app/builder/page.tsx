@@ -137,6 +137,7 @@ function BuilderContent() {
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [internalName, setInternalName] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [collapsedQuestions, setCollapsedQuestions] = useState<Set<string>>(new Set());
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -178,6 +179,7 @@ function BuilderContent() {
         if (survey) {
           setTitle(survey.title);
           setDescription(survey.description || '');
+          setInternalName(survey.internalName || '');
           // Clean all question titles when loading
           const cleanedQuestions = survey.questions.map(q => ({
             ...q,
@@ -201,15 +203,16 @@ function BuilderContent() {
       setTitle(template.survey.title);
       setDescription(template.survey.description || '');
       
-      // Regenerate IDs for questions and options
+      // Regenerate IDs for questions and options, preserving order
       const templateQuestions = template.survey.questions.map((q, idx) => ({
         ...q,
         id: uuidv4(),
         order: idx,
-        options: q.options?.map(opt => ({
+        // Preserve options array order explicitly
+        options: q.options ? q.options.map((opt, optIdx) => ({
           ...opt,
           id: uuidv4(),
-        })),
+        })) : undefined,
       }));
       
       setQuestions(templateQuestions);
@@ -378,6 +381,7 @@ function BuilderContent() {
         id: surveyId || uuidv4(),
         title: title.trim(),
         description: description.trim() || undefined,
+        internalName: internalName.trim() || undefined,
         questions: validQuestions.map(q => ({
           ...q,
           // Clean title - remove trailing zeros and trim
@@ -447,7 +451,7 @@ function BuilderContent() {
               className="w-full px-4 py-2 md:py-3 text-base md:text-xl border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
-          <div>
+          <div className="mb-4 md:mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Description (optional)
             </label>
@@ -456,6 +460,19 @@ function BuilderContent() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter survey description"
               rows={3}
+              className="w-full px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm md:text-base"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Internal Name (optional)
+              <span className="ml-2 text-xs text-gray-500 font-normal">For internal reference only - not shown to public</span>
+            </label>
+            <input
+              type="text"
+              value={internalName}
+              onChange={(e) => setInternalName(e.target.value)}
+              placeholder="e.g., Q4 2024 Customer Feedback, Product Launch Survey"
               className="w-full px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm md:text-base"
             />
           </div>

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     
     // Admin sees all surveys, users see only their own
     // Exclude soft-deleted surveys (deleted_at IS NULL)
-    let query = 'SELECT id, user_id as userId, title, description, email_notifications_enabled as emailNotificationsEnabled, published, created_at as createdAt, updated_at as updatedAt FROM surveys WHERE deleted_at IS NULL';
+    let query = 'SELECT id, user_id as userId, title, description, internal_name as internalName, email_notifications_enabled as emailNotificationsEnabled, published, created_at as createdAt, updated_at as updatedAt FROM surveys WHERE deleted_at IS NULL';
     let params: any[] = [];
     
     if (currentUser.role !== 'admin') {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
             
             if (['multiple-choice', 'single-choice'].includes(question.type)) {
               const [options] = await pool.execute(
-                'SELECT id, label FROM question_options WHERE question_id = ? ORDER BY id ASC',
+                'SELECT id, label FROM question_options WHERE question_id = ? ORDER BY `order` ASC',
                 [question.id]
               ) as any[];
               return { ...cleanedQuestion, options };
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
 
     // Insert survey with user_id
     await pool.execute(
-      'INSERT INTO surveys (id, user_id, title, description) VALUES (?, ?, ?, ?)',
-      [survey.id, currentUser.id, survey.title, survey.description || null]
+      'INSERT INTO surveys (id, user_id, title, description, internal_name) VALUES (?, ?, ?, ?, ?)',
+      [survey.id, currentUser.id, survey.title, survey.description || null, survey.internalName || null]
     );
 
     // Insert questions
@@ -124,12 +124,13 @@ export async function POST(request: NextRequest) {
         ]
       );
 
-      // Insert options if needed
+      // Insert options if needed - preserve order from array
       if (question.options && question.options.length > 0) {
-        for (const option of question.options) {
+        for (let i = 0; i < question.options.length; i++) {
+          const option = question.options[i];
           await pool.execute(
-            'INSERT INTO question_options (id, question_id, label) VALUES (?, ?, ?)',
-            [option.id, question.id, option.label]
+            'INSERT INTO question_options (id, question_id, label, `order`) VALUES (?, ?, ?, ?)',
+            [option.id, question.id, option.label, i]
           );
         }
       }
@@ -181,8 +182,8 @@ export async function PUT(request: NextRequest) {
 
     // Update survey
     await pool.execute(
-      'UPDATE surveys SET title = ?, description = ? WHERE id = ?',
-      [survey.title, survey.description || null, survey.id]
+      'UPDATE surveys SET title = ?, description = ?, internal_name = ? WHERE id = ?',
+      [survey.title, survey.description || null, survey.internalName || null, survey.id]
     );
 
     // Delete existing questions and options
@@ -212,10 +213,11 @@ export async function PUT(request: NextRequest) {
 
       // Insert options if needed
       if (question.options && question.options.length > 0) {
-        for (const option of question.options) {
+        for (let i = 0; i < question.options.length; i++) {
+          const option = question.options[i];
           await pool.execute(
-            'INSERT INTO question_options (id, question_id, label) VALUES (?, ?, ?)',
-            [option.id, question.id, option.label]
+            'INSERT INTO question_options (id, question_id, label, `order`) VALUES (?, ?, ?, ?)',
+            [option.id, question.id, option.label, i]
           );
         }
       }

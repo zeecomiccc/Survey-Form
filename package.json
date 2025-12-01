@@ -21,6 +21,8 @@
     "migrate-short-code": "node scripts/migrate-add-short-code.js",
     "migrate-templates": "node scripts/create-templates-table.js",
     "migrate-published": "node scripts/migrate-add-published.js",
+    "migrate-option-order": "node scripts/migrate-add-option-order.js",
+    "migrate-internal-name": "node scripts/migrate-add-internal-name.js",
     "fix-titles": "node scripts/fix-question-titles.js"
   },
   "dependencies": {

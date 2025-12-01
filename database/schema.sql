@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS surveys (
     user_id VARCHAR(36) NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    internal_name VARCHAR(255) DEFAULT NULL,
     email_notifications_enabled BOOLEAN DEFAULT FALSE,
     published BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -68,9 +69,11 @@ CREATE TABLE IF NOT EXISTS question_options (
     id VARCHAR(36) PRIMARY KEY,
     question_id VARCHAR(36) NOT NULL,
     label VARCHAR(255) NOT NULL,
+    `order` INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
-    INDEX idx_question_id (question_id)
+    INDEX idx_question_id (question_id),
+    INDEX idx_order (question_id, `order`)
 );
 
 -- Survey responses table

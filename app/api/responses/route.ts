@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
           questions.map(async (question: any) => {
             if (['multiple-choice', 'single-choice'].includes(question.type)) {
               const [options] = await pool.execute(
-                'SELECT id, label FROM question_options WHERE question_id = ? ORDER BY id ASC',
+                'SELECT id, label FROM question_options WHERE question_id = ? ORDER BY `order` ASC',
                 [question.id]
               ) as any[];
               return { ...question, options };
