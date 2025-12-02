@@ -98,10 +98,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Convert ISO 8601 timestamp to MySQL datetime format (YYYY-MM-DD HH:MM:SS)
+    const submittedAt = response.submittedAt 
+      ? new Date(response.submittedAt).toISOString().slice(0, 19).replace('T', ' ')
+      : new Date().toISOString().slice(0, 19).replace('T', ' ');
+
     // Insert response
     await pool.execute(
       'INSERT INTO survey_responses (id, survey_id, link_token, submitted_at) VALUES (?, ?, ?, ?)',
-      [response.id, response.surveyId, response.linkToken || null, response.submittedAt]
+      [response.id, response.surveyId, response.linkToken || null, submittedAt]
     );
 
     // Insert answers
