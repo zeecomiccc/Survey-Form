@@ -4,6 +4,7 @@ import { SurveyResponse, Answer, Survey } from '@/types/survey';
 import { v4 as uuidv4 } from 'uuid';
 import { sendSurveySubmissionEmail } from '@/lib/email';
 import { apiRateLimit } from '@/lib/rate-limit';
+import crypto from 'crypto';
 
 // Force dynamic rendering (can't be statically generated due to searchParams and database access)
 export const dynamic = 'force-dynamic';
@@ -86,53 +87,120 @@ export async function POST(request: NextRequest) {
     const pool = getPool();
     const response: SurveyResponse = await request.json();
 
-    // Check if link token already has a submission
-    if (response.linkToken) {
-      const [existing] = await pool.execute(
-        'SELECT id FROM survey_responses WHERE link_token = ?',
-        [response.linkToken]
-      ) as any[];
-      
-      if (existing.length > 0) {
-        return NextResponse.json({ error: 'This link has already been used to submit a response' }, { status: 409 });
-      }
-    }
+    // Generate device fingerprint from IP and User-Agent
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0].trim() : 
+               request.headers.get('x-real-ip') || 
+               'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+    const deviceFingerprint = crypto
+      .createHash('sha256')
+      .update(`${ip}:${userAgent}`)
+      .digest('hex')
+      .substring(0, 32);
 
     // Convert ISO 8601 timestamp to MySQL datetime format (YYYY-MM-DD HH:MM:SS)
     const submittedAt = response.submittedAt 
       ? new Date(response.submittedAt).toISOString().slice(0, 19).replace('T', ' ')
       : new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-    // Insert response
-    await pool.execute(
-      'INSERT INTO survey_responses (id, survey_id, link_token, submitted_at) VALUES (?, ?, ?, ?)',
-      [response.id, response.surveyId, response.linkToken || null, submittedAt]
-    );
+    // Use a transaction to make check and insert atomic, preventing race conditions
+    const connection = await pool.getConnection();
+    
+    try {
+      await connection.beginTransaction();
 
-    // Insert answers
-    for (const answer of response.answers) {
-      const answerId = uuidv4();
-      await pool.execute(
-        `INSERT INTO answers (id, response_id, question_id, value_text, value_number)
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-          answerId,
-          response.id,
-          answer.questionId,
-          typeof answer.value === 'string' ? answer.value : null,
-          typeof answer.value === 'number' ? answer.value : null,
-        ]
-      );
-
-      // If it's an array (multiple choice), insert into answer_options
-      if (Array.isArray(answer.value)) {
-        for (const optionId of answer.value) {
-          await pool.execute(
-            'INSERT INTO answer_options (id, answer_id, option_id) VALUES (?, ?, ?)',
-            [uuidv4(), answerId, optionId]
-          );
+      // Check if this device has already submitted this survey
+      try {
+        const [existing] = await connection.execute(
+          'SELECT id FROM survey_responses WHERE survey_id = ? AND device_fingerprint = ? FOR UPDATE',
+          [response.surveyId, deviceFingerprint]
+        ) as any[];
+        
+        if (existing.length > 0) {
+          await connection.rollback();
+          connection.release();
+          return NextResponse.json({ 
+            error: 'You have already submitted this survey on this device. Each device can only submit once per survey.' 
+          }, { status: 409 });
+        }
+      } catch (checkError: any) {
+        // If column doesn't exist, skip the check (backward compatibility)
+        if (checkError.code === 'ER_BAD_FIELD_ERROR' && checkError.sqlMessage?.includes('device_fingerprint')) {
+          console.warn('device_fingerprint column does not exist. Skipping device check. Please run database migration.');
+        } else {
+          throw checkError;
         }
       }
+
+      // Insert response (within transaction)
+      // Allow multiple submissions per link token - no restriction
+      // Only store linkToken if it's provided and not empty
+      const linkTokenValue = (response.linkToken && response.linkToken.trim() !== '') 
+        ? response.linkToken.trim() 
+        : null;
+      
+      try {
+        // Try to insert with device_fingerprint first
+        await connection.execute(
+          'INSERT INTO survey_responses (id, survey_id, link_token, device_fingerprint, submitted_at) VALUES (?, ?, ?, ?, ?)',
+          [response.id, response.surveyId, linkTokenValue, deviceFingerprint, submittedAt]
+        );
+      } catch (insertError: any) {
+        // If column doesn't exist, insert without device_fingerprint (backward compatibility)
+        if (insertError.code === 'ER_BAD_FIELD_ERROR' && insertError.sqlMessage?.includes('device_fingerprint')) {
+          await connection.execute(
+            'INSERT INTO survey_responses (id, survey_id, link_token, submitted_at) VALUES (?, ?, ?, ?)',
+            [response.id, response.surveyId, linkTokenValue, submittedAt]
+          );
+        } else if (insertError.code === 'ER_DUP_ENTRY' && insertError.sqlMessage?.includes('unique_device_survey')) {
+          // Handle duplicate key error (race condition or device already submitted)
+          await connection.rollback();
+          connection.release();
+          return NextResponse.json({ 
+            error: 'You have already submitted this survey on this device. Each device can only submit once per survey.' 
+          }, { status: 409 });
+        } else {
+          // Re-throw other errors
+          throw insertError;
+        }
+      }
+
+      // Insert answers (within transaction)
+      for (const answer of response.answers) {
+        const answerId = uuidv4();
+        await connection.execute(
+          `INSERT INTO answers (id, response_id, question_id, value_text, value_number)
+           VALUES (?, ?, ?, ?, ?)`,
+          [
+            answerId,
+            response.id,
+            answer.questionId,
+            typeof answer.value === 'string' ? answer.value : null,
+            typeof answer.value === 'number' ? answer.value : null,
+          ]
+        );
+
+        // If it's an array (multiple choice), insert into answer_options
+        if (Array.isArray(answer.value)) {
+          for (const optionId of answer.value) {
+            await connection.execute(
+              'INSERT INTO answer_options (id, answer_id, option_id) VALUES (?, ?, ?)',
+              [uuidv4(), answerId, optionId]
+            );
+          }
+        }
+      }
+
+      // Commit transaction - all inserts successful
+      await connection.commit();
+    } catch (transactionError: any) {
+      // Rollback transaction on any error
+      await connection.rollback();
+      throw transactionError;
+    } finally {
+      // Always release the connection back to the pool
+      connection.release();
     }
 
     // Send email notification if enabled

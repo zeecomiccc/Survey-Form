@@ -8,6 +8,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 
 // Validate JWT_SECRET at runtime only (not during build)
 function validateJwtSecret() {
+  // Skip validation in development mode
+  if (process.env.NODE_ENV === 'development') {
+    return;
+  }
+  
   // Check if we're in a Next.js build phase
   // During build, Next.js sets NODE_ENV=production but we shouldn't validate
   const isBuildPhase = 
@@ -16,7 +21,7 @@ function validateJwtSecret() {
     typeof process.env.__NEXT_PRIVATE_STANDALONE_BUILD !== 'undefined' ||
     // Check process arguments for build commands
     (typeof process !== 'undefined' && process.argv && 
-     (process.argv.some(arg => arg.includes('next build')) || 
+     (process.argv.some(arg => arg.includes('next build')) ||
       process.argv.some(arg => arg.includes('next export'))));
   
   // Skip validation entirely during build phase

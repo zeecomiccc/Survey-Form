@@ -23,8 +23,8 @@ function SurveyPageContent() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
 
   useEffect(() => {
     const loadSurvey = async () => {
@@ -63,30 +63,36 @@ function SurveyPageContent() {
         console.log('Survey loaded with cleaned titles');
         setSurvey(cleanedSurvey);
         setLoading(false);
-
-        // Check if link token has already been used
-        if (linkToken) {
-          // Check localStorage first (client-side check)
-          const submittedTokens = JSON.parse(localStorage.getItem('submitted_tokens') || '[]');
-          if (submittedTokens.includes(linkToken)) {
+        
+        // Check if this device has already submitted this survey
+        // Track by surveyId to prevent duplicate submissions from the same device
+        if (typeof window !== 'undefined') {
+          const submittedSurveys = JSON.parse(localStorage.getItem('submitted_surveys') || '[]');
+          if (submittedSurveys.includes(surveyId)) {
             setAlreadySubmitted(true);
             return;
           }
-
-          // Check server-side
+          
+          // Also check server-side to be sure (handles cases where localStorage was cleared)
           try {
-            const response = await fetch(`/api/responses/check-link?token=${linkToken}`);
-            if (response.ok) {
-              const data = await response.json();
-              if (data.hasSubmitted) {
+            const checkResponse = await fetch(`/api/responses/check-device-submission?surveyId=${encodeURIComponent(surveyId)}`, {
+              cache: 'no-store',
+            });
+            if (checkResponse.ok) {
+              const checkData = await checkResponse.json();
+              if (checkData.hasSubmitted) {
                 setAlreadySubmitted(true);
-                // Store in localStorage
-                submittedTokens.push(linkToken);
-                localStorage.setItem('submitted_tokens', JSON.stringify(submittedTokens));
+                // Update localStorage to match server state
+                if (!submittedSurveys.includes(surveyId)) {
+                  submittedSurveys.push(surveyId);
+                  localStorage.setItem('submitted_surveys', JSON.stringify(submittedSurveys));
+                }
+                return;
               }
             }
           } catch (error) {
-            console.error('Error checking link submission:', error);
+            console.error('Error checking device submission:', error);
+            // Continue - let server handle the check on submit
           }
         }
       } catch (error) {
@@ -217,21 +223,21 @@ function SurveyPageContent() {
 
       await storage.saveResponse(response);
       
-      // Store token in localStorage to prevent duplicate submissions
-      if (linkToken) {
-        const submittedTokens = JSON.parse(localStorage.getItem('submitted_tokens') || '[]');
-        if (!submittedTokens.includes(linkToken)) {
-          submittedTokens.push(linkToken);
-          localStorage.setItem('submitted_tokens', JSON.stringify(submittedTokens));
+      // Mark this survey as submitted on this device
+      if (typeof window !== 'undefined') {
+        const submittedSurveys = JSON.parse(localStorage.getItem('submitted_surveys') || '[]');
+        if (!submittedSurveys.includes(surveyId)) {
+          submittedSurveys.push(surveyId);
+          localStorage.setItem('submitted_surveys', JSON.stringify(submittedSurveys));
         }
       }
       
       setSubmitted(true);
       toast.success('Thank you! Your response has been submitted successfully.');
     } catch (error: any) {
-      if (error.message && error.message.includes('already been used')) {
+      if (error.message && error.message.includes('already submitted')) {
         setAlreadySubmitted(true);
-        toast.error('This link has already been used to submit a response. Please request a new link.');
+        toast.error('You have already submitted this survey on this device.');
       } else {
         toast.error('Failed to submit response. Please try again.');
         console.error(error);
@@ -274,17 +280,11 @@ function SurveyPageContent() {
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-3">Already Submitted</h1>
           <p className="text-lg text-gray-600 mb-2">
-            You have already submitted a response using this link.
+            You have already submitted a response to this survey on this device.
           </p>
-          <p className="text-gray-500 mb-8">
-            Each survey link can only be used once. If you need to submit again, please request a new link.
+          <p className="text-gray-500">
+            Each device can only submit once per survey. If you need to submit again, please use a different device.
           </p>
-          <button
-            onClick={() => router.push('/')}
-            className="bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-all transform hover:scale-105 shadow-lg"
-          >
-            Back to Home
-          </button>
         </div>
       </div>
     );

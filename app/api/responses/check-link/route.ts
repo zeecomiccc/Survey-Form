@@ -27,19 +27,34 @@ export async function GET(request: NextRequest) {
       throw buildError; // Re-throw if it's a different error
     }
 
-    if (!token) {
+    if (!token || token.trim() === '') {
       return NextResponse.json({ error: 'token is required' }, { status: 400 });
     }
 
+    // Check for submissions with this exact token (excluding NULL values)
+    // This ensures we only check for actual token matches, not NULL values
+    const trimmedToken = token.trim();
     const [responses] = await pool.execute(
-      'SELECT id FROM survey_responses WHERE link_token = ?',
-      [token]
+      'SELECT id FROM survey_responses WHERE link_token = ? AND link_token IS NOT NULL',
+      [trimmedToken]
     ) as any[];
 
-    return NextResponse.json({ 
+    // Log for debugging (remove in production if needed)
+    if (responses.length > 0) {
+      console.log(`[check-link] Token ${trimmedToken.substring(0, 8)}... already has ${responses.length} submission(s)`);
+    }
+
+    const result = NextResponse.json({ 
       hasSubmitted: responses.length > 0,
       responseId: responses.length > 0 ? responses[0].id : null
     });
+    
+    // Prevent caching to ensure fresh data on every request
+    result.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    result.headers.set('Pragma', 'no-cache');
+    result.headers.set('Expires', '0');
+    
+    return result;
   } catch (error: any) {
     // Suppress the DYNAMIC_SERVER_USAGE error during build phase
     if (error.digest === 'DYNAMIC_SERVER_USAGE' || 
