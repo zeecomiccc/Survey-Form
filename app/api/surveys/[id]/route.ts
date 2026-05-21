@@ -179,11 +179,23 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Soft delete - set deleted_at timestamp instead of hard delete
-    await pool.execute(
-      'UPDATE surveys SET deleted_at = NOW() WHERE id = ?',
-      [surveyId]
-    );
+    // Soft delete - set deleted_at timestamp and deleted_by instead of hard delete
+    try {
+      await pool.execute(
+        'UPDATE surveys SET deleted_at = NOW(), deleted_by = ? WHERE id = ?',
+        [currentUser.id, surveyId]
+      );
+    } catch (error: any) {
+      // If deleted_by column doesn't exist, fall back to just setting deleted_at
+      if (error.code === 'ER_BAD_FIELD_ERROR' && error.sqlMessage?.includes('deleted_by')) {
+        await pool.execute(
+          'UPDATE surveys SET deleted_at = NOW() WHERE id = ?',
+          [surveyId]
+        );
+      } else {
+        throw error;
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

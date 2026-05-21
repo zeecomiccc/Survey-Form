@@ -34,6 +34,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSort, setFilterSort] = useState<'date' | 'title' | 'responses'>('date');
   const [filterOrder, setFilterOrder] = useState<'asc' | 'desc'>('desc');
+  const [showDeleted, setShowDeleted] = useState(false); // Toggle to show/hide deleted surveys (admin only)
   const [viewMode, setViewMode] = useState<'card' | 'table'>(() => {
     // Load view mode from localStorage, default to 'card'
     if (typeof window !== 'undefined') {
@@ -100,6 +101,18 @@ export default function Home() {
   const applyFilters = (surveyList: Survey[] = allSurveys) => {
     let filtered = [...surveyList];
 
+    // Apply deleted filter (admin only)
+    if (currentUser?.role === 'admin') {
+      if (!showDeleted) {
+        // Hide deleted surveys
+        filtered = filtered.filter(survey => !survey.deletedAt);
+      }
+      // If showDeleted is true, show all surveys including deleted ones
+    } else {
+      // Regular users: always hide deleted surveys
+      filtered = filtered.filter(survey => !survey.deletedAt);
+    }
+
     // Apply search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -129,6 +142,14 @@ export default function Home() {
 
     setSurveys(filtered);
   };
+
+  // Update filters when showDeleted changes
+  useEffect(() => {
+    if (allSurveys.length > 0) {
+      applyFilters();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDeleted]);
 
   // Update filters when search or sort changes
   useEffect(() => {
@@ -253,6 +274,18 @@ export default function Home() {
                 <FileText size={16} />
                 <span className="hidden sm:inline">Template</span>
               </Link>
+              {/* Show Deleted Toggle - Admin Only */}
+              {currentUser?.role === 'admin' && (
+                <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors text-sm">
+                  <input
+                    type="checkbox"
+                    checked={showDeleted}
+                    onChange={(e) => setShowDeleted(e.target.checked)}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <span className="text-gray-700">Show Deleted</span>
+                </label>
+              )}
             </div>
 
             {/* View Toggle */}
@@ -338,11 +371,32 @@ export default function Home() {
             {surveys.map((survey) => (
               <div
                 key={survey.id}
-                className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow p-4 md:p-5"
+                className={`bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow p-4 md:p-5 ${
+                  survey.deletedAt ? 'opacity-75 border-2 border-red-200' : ''
+                }`}
               >
+                {survey.deletedAt && (
+                  <div className="mb-2 px-2 py-1 bg-red-50 border border-red-200 rounded text-xs text-red-700 font-medium">
+                    🗑️ Deleted
+                  </div>
+                )}
                 <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-1.5 line-clamp-2">
                   {survey.title}
                 </h3>
+                {/* Creator and Deleter Info - Admin Only */}
+                {currentUser?.role === 'admin' && (
+                  <div className="mb-2 text-xs text-gray-500 space-y-0.5">
+                    {survey.creatorName && (
+                      <div>👤 Created by: {survey.creatorName} {survey.creatorEmail && `(${survey.creatorEmail})`}</div>
+                    )}
+                    {survey.deletedAt && survey.deleterName && (
+                      <div>🗑️ Deleted by: {survey.deleterName} {survey.deleterEmail && `(${survey.deleterEmail})`}</div>
+                    )}
+                    {survey.deletedAt && (
+                      <div>📅 Deleted on: {new Date(survey.deletedAt).toLocaleDateString()}</div>
+                    )}
+                  </div>
+                )}
                 {survey.internalName && (
                   <p className="text-gray-500 mb-1.5 text-xs italic">
                     📋 {survey.internalName}
@@ -522,6 +576,16 @@ export default function Home() {
                         {filterSort !== 'date' && <ArrowUpDown size={14} className="text-gray-400" />}
                       </div>
                     </th>
+                    {currentUser?.role === 'admin' && (
+                      <>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Creator
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Status
+                        </th>
+                      </>
+                    )}
                     <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Actions
                     </th>
@@ -529,14 +593,21 @@ export default function Home() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {surveys.map((survey, index) => (
-                    <tr key={survey.id} className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                    <tr key={survey.id} className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} ${survey.deletedAt ? 'opacity-75 bg-red-50/30' : ''}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
-                            <FileText className="h-5 w-5 text-primary-600" />
+                          <div className={`flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center mr-3 ${survey.deletedAt ? 'bg-red-100' : 'bg-primary-100'}`}>
+                            <FileText className={`h-5 w-5 ${survey.deletedAt ? 'text-red-600' : 'text-primary-600'}`} />
                           </div>
                           <div>
-                            <div className="text-sm font-semibold text-gray-900">{survey.title}</div>
+                            <div className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                              {survey.title}
+                              {survey.deletedAt && (
+                                <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded">
+                                  Deleted
+                                </span>
+                              )}
+                            </div>
                             {survey.internalName && (
                               <div className="text-xs text-gray-500 italic mt-0.5">
                                 📋 {survey.internalName}
@@ -570,6 +641,43 @@ export default function Home() {
                           day: 'numeric' 
                         })}
                       </td>
+                      {currentUser?.role === 'admin' && (
+                        <>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {survey.creatorName ? (
+                              <div>
+                                <div className="font-medium">{survey.creatorName}</div>
+                                {survey.creatorEmail && (
+                                  <div className="text-xs text-gray-500">{survey.creatorEmail}</div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">Unknown</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {survey.deletedAt ? (
+                              <div className="text-sm">
+                                <div className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium mb-1">
+                                  Deleted
+                                </div>
+                                {survey.deleterName && (
+                                  <div className="text-xs text-gray-600">
+                                    by {survey.deleterName}
+                                  </div>
+                                )}
+                                <div className="text-xs text-gray-500">
+                                  {new Date(survey.deletedAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                Active
+                              </span>
+                            )}
+                          </td>
+                        </>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center gap-2 flex-wrap">
                           <Link

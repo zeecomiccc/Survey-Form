@@ -15,19 +15,76 @@ export async function GET(request: NextRequest) {
 
     const pool = getPool();
     
-    // Admin sees all surveys, users see only their own
-    // Exclude soft-deleted surveys (deleted_at IS NULL)
-    let query = 'SELECT id, user_id as userId, title, description, internal_name as internalName, email_notifications_enabled as emailNotificationsEnabled, published, created_at as createdAt, updated_at as updatedAt FROM surveys WHERE deleted_at IS NULL';
+    // Admin sees all surveys (including deleted), users see only their own (non-deleted)
+    // For admins, include deleted surveys with creator and deleter info
+    let query = '';
     let params: any[] = [];
     
-    if (currentUser.role !== 'admin') {
-      query += ' AND user_id = ?';
+    if (currentUser.role === 'admin') {
+      // Admin: Get all surveys including deleted ones, with creator and deleter info
+      query = `SELECT 
+        s.id, 
+        s.user_id as userId, 
+        s.title, 
+        s.description, 
+        s.internal_name as internalName, 
+        s.email_notifications_enabled as emailNotificationsEnabled, 
+        s.published, 
+        s.created_at as createdAt, 
+        s.updated_at as updatedAt,
+        s.deleted_at as deletedAt,
+        s.deleted_by as deletedBy,
+        creator.name as creatorName,
+        creator.email as creatorEmail,
+        deleter.name as deleterName,
+        deleter.email as deleterEmail
+      FROM surveys s
+      LEFT JOIN users creator ON s.user_id = creator.id
+      LEFT JOIN users deleter ON s.deleted_by = deleter.id
+      ORDER BY s.created_at DESC`;
+    } else {
+      // Regular users: Only their own non-deleted surveys
+      query = `SELECT 
+        s.id, 
+        s.user_id as userId, 
+        s.title, 
+        s.description, 
+        s.internal_name as internalName, 
+        s.email_notifications_enabled as emailNotificationsEnabled, 
+        s.published, 
+        s.created_at as createdAt, 
+        s.updated_at as updatedAt,
+        s.deleted_at as deletedAt,
+        s.deleted_by as deletedBy,
+        creator.name as creatorName,
+        creator.email as creatorEmail,
+        deleter.name as deleterName,
+        deleter.email as deleterEmail
+      FROM surveys s
+      LEFT JOIN users creator ON s.user_id = creator.id
+      LEFT JOIN users deleter ON s.deleted_by = deleter.id
+      WHERE s.deleted_at IS NULL AND s.user_id = ?
+      ORDER BY s.created_at DESC`;
       params.push(currentUser.id);
     }
     
-    query += ' ORDER BY created_at DESC';
-    
-    const [surveys] = await pool.execute(query, params) as any[];
+    let surveys: any[];
+    try {
+      [surveys] = await pool.execute(query, params) as any[];
+    } catch (error: any) {
+      // If deleted_by column doesn't exist, fall back to simpler query
+      if (error.code === 'ER_BAD_FIELD_ERROR' && error.sqlMessage?.includes('deleted_by')) {
+        // Fallback query without deleted_by and user joins
+        if (currentUser.role === 'admin') {
+          query = 'SELECT id, user_id as userId, title, description, internal_name as internalName, email_notifications_enabled as emailNotificationsEnabled, published, created_at as createdAt, updated_at as updatedAt, deleted_at as deletedAt FROM surveys ORDER BY created_at DESC';
+        } else {
+          query = 'SELECT id, user_id as userId, title, description, internal_name as internalName, email_notifications_enabled as emailNotificationsEnabled, published, created_at as createdAt, updated_at as updatedAt, deleted_at as deletedAt FROM surveys WHERE deleted_at IS NULL AND user_id = ? ORDER BY created_at DESC';
+        }
+        [surveys] = await pool.execute(query, params) as any[];
+      } else {
+        throw error;
+      }
+    }
 
     // Get questions for each survey
     const surveysWithQuestions = await Promise.all(

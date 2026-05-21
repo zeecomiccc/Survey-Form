@@ -400,6 +400,65 @@ rsync -avz --exclude 'node_modules' --exclude '.next' --exclude '.env.local' \
 
 ## Troubleshooting
 
+### App stops responding after a few hours (no error in browser)
+
+This usually means the Node process died, hung, or lost database connections — not a bug in the UI.
+
+**1. Confirm how you start the app**
+
+| Command | OK for production? |
+|---------|-------------------|
+| `npm run dev` | No — restarts poorly, high memory use |
+| `npm start` in SSH | No — dies when SSH closes unless `nohup`/`screen` |
+| `pm2 start ecosystem.config.js` | Yes |
+
+**2. Check PM2 and logs on Ubuntu**
+
+```bash
+pm2 status
+pm2 logs survey-app --lines 200
+pm2 monit
+# If the process was killed by Linux (OOM):
+dmesg -T | grep -i "killed process" | tail -20
+journalctl -u mysql --since "24 hours ago" | tail -50
+```
+
+**3. Health check**
+
+```bash
+curl -s http://localhost:3000/api/health
+# {"status":"ok","db":"connected",...}  → app + DB fine
+# 503 or connection refused → process down or DB unreachable
+```
+
+**4. MySQL idle timeout**
+
+Stale pool connections are a common cause. On the server:
+
+```sql
+SHOW VARIABLES LIKE 'wait_timeout';
+SHOW VARIABLES LIKE 'max_connections';
+```
+
+If `wait_timeout` is low (e.g. 60–300 seconds), raise it in MySQL config or ensure the app pool `idleTimeout` stays below server timeout (already set to 60s in `lib/db.ts`).
+
+**5. Production checklist**
+
+```bash
+export NODE_ENV=production
+npm run build
+mkdir -p logs
+pm2 delete survey-app 2>/dev/null; pm2 start ecosystem.config.js
+pm2 save
+```
+
+Optional cron to log health every 15 minutes (helps prove when it failed):
+
+```bash
+# crontab -e
+*/15 * * * * curl -sf http://127.0.0.1:3000/api/health >> /var/www/Survey/logs/health.log 2>&1
+```
+
 ### Database Connection Error
 - Verify credentials in `.env.local`
 - Check MySQL is running: `sudo systemctl status mysql`

@@ -34,6 +34,12 @@ export interface Survey {
   updatedAt: string;
   emailNotificationsEnabled?: boolean;
   published?: boolean;
+  deletedAt?: string | null; // Timestamp when survey was deleted
+  deletedBy?: string | null; // User ID who deleted the survey
+  creatorName?: string; // Name of user who created the survey
+  creatorEmail?: string; // Email of user who created the survey
+  deleterName?: string; // Name of user who deleted the survey
+  deleterEmail?: string; // Email of user who deleted the survey
 }
 
 export interface SurveyResponse {
