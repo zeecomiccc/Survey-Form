@@ -1,3 +1,4 @@
+import type { EventEmitter } from 'events';
 import mysql from 'mysql2/promise';
 
 // Database connection configuration
@@ -39,8 +40,8 @@ function attachPoolHandlers(p: mysql.Pool): void {
     });
   });
 
-  // mysql2 pool-level errors (e.g. server closed idle connection)
-  p.on('error', (err: NodeJS.ErrnoException) => {
+  // Pool-level errors are emitted at runtime but omitted from mysql2/promise types
+  (p as unknown as EventEmitter).on('error', (err: NodeJS.ErrnoException) => {
     console.error('[DB] Pool error:', err.code, err.message);
     if (err.code && STALE_CONNECTION_CODES.has(err.code)) {
       void recreatePool();
